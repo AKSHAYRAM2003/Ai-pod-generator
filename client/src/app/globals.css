@@ -42,3 +42,37 @@ html, body {
 ::-webkit-scrollbar-thumb:hover {
   background: #666;
 }
+
+/* Media controller utilities */
+.dragging {
+  user-select: none;
+}
+
+.dragging * {
+  cursor: grabbing !important;
+}
+
+/* Improved glass effect */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Tabular numbers for consistent time display */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Smooth transitions for interactive elements */
+.media-control-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.media-control-btn:hover {
+  transform: scale(1.05);
+}
+
+.media-control-btn:active {
+  transform: scale(0.95);
+}

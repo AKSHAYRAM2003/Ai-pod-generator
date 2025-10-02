@@ -28,7 +28,7 @@ export default function TopNavbar({ onMenuClick }: TopNavbarProps) {
         </div>
 
         {/* Right Side - Bell Icon and Auth Buttons */}
-        <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+        <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
           <button className="p-2 rounded-lg hover:bg-gray-800 transition-colors">
             <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </button>

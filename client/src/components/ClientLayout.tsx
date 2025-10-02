@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Sidebar from './Sidebar';
 import TopNavbar from './TopNavbar';
+import MediaController from './MediaController';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -23,9 +24,16 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
           onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
         />
         
-        {/* Page Content */}
-        <div className="flex-1 overflow-auto bg-black">
-          {children}
+        {/* Page Content with Media Controller */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-black">
+          <div className="flex-1 overflow-auto">
+            {children}
+          </div>
+          
+          {/* Media Controller - Within main content area */}
+          <div className="flex-shrink-0">
+            <MediaController />
+          </div>
         </div>
       </div>
     </div>

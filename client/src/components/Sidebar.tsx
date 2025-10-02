@@ -2,6 +2,7 @@
 
 import { Home, Compass, BookOpen, PanelLeftOpen, PanelLeftClose, Podcast } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -10,12 +11,19 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [activeItem, setActiveItem] = useState<string>('Home');
+  const router = useRouter();
 
   const navigationItems = [
-    { icon: Home, label: 'Home', href: '/', active: true },
-    { icon: Compass, label: 'Discover', href: '/discover', active: false },
-    { icon: BookOpen, label: 'Library', href: '/library', active: false },
+    { icon: Home, label: 'Home', href: '/' },
+    { icon: Compass, label: 'Discover', href: '/discover' },
+    { icon: BookOpen, label: 'Library', href: '/library' },
   ];
+
+  const handleItemClick = (itemLabel: string, href: string) => {
+    setActiveItem(itemLabel);
+    router.push(href);
+  };
 
   return (
     <>
@@ -63,11 +71,11 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
               </button>
               
               {/* Tooltip for open button */}
-              {hoveredItem === 'toggle' && (
+              {/* {hoveredItem === 'toggle' && (
                 <div className="absolute left-16 top-4 bg-gray-900 text-white px-2 py-1 rounded-md text-sm whitespace-nowrap z-50 border border-gray-700">
                   Open Sidebar
                 </div>
-              )}
+              )} */}
             </div>
           )}
         </div>
@@ -77,12 +85,15 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           <ul className="space-y-2">
             {navigationItems.map((item) => (
               <li key={item.label}>
-                <a
-                  href={item.href}
-                  className={`flex items-center px-3 py-2 rounded-lg transition-all duration-200 ${
-                    item.active 
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleItemClick(item.label, item.href);
+                  }}
+                  className={`w-full flex items-center px-3 py-2 rounded-lg transition-all duration-200 ${
+                    activeItem === item.label 
                       ? 'bg-gray-800 text-white' 
-                      : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
                   } ${!isOpen ? 'justify-center' : ''}`}
                   onMouseEnter={() => setHoveredItem(item.label)}
                   onMouseLeave={() => setHoveredItem(null)}
@@ -98,7 +109,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                       {item.label}
                     </div>
                   )}
-                </a>
+                </button>
               </li>
             ))}
           </ul>
@@ -107,7 +118,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         {/* Start Generate Button */}
         <div className="absolute bottom-6 left-0 right-0 px-3">
           <button 
-            className={`w-full bg-white text-black font-semibold py-3 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center ${
+            className={`w-full bg-white text-black font-semibold py-3 rounded-full hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center ${
               !isOpen ? 'px-2' : 'px-4'
             }`}
             onMouseEnter={() => setHoveredItem('generate')}
