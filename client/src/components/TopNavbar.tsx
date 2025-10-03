@@ -3,25 +3,76 @@
 import { Search, Bell, User } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@/contexts/UserContext';
-import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
+import ProfilePopup from './ProfilePopup';
 
 interface TopNavbarProps {
   onMenuClick?: () => void;
 }
 
 export default function TopNavbar({ onMenuClick }: TopNavbarProps) {
-  const { user, isAuthenticated } = useUser();
-  const router = useRouter();
+  const { user: contextUser, isAuthenticated: contextAuth, login } = useUser();
+  const { data: session, status } = useSession();
+  const [showProfilePopup, setShowProfilePopup] = useState(false);
+  const [displayUser, setDisplayUser] = useState<any>(null);
+  const [isAuth, setIsAuth] = useState(false);
+
+  // Update display user when session or context changes
+  useEffect(() => {
+    console.log('🔍 TopNavbar: Auth state changed', {
+      hasSession: !!session?.user,
+      sessionStatus: status,
+      hasContextUser: !!contextUser,
+      contextAuth,
+      sessionUser: session?.user,
+      contextUserData: contextUser
+    });
+
+    // Check if user is authenticated via NextAuth session
+    if (session && status === 'authenticated') {
+      const backendToken = (session as any).backendToken;
+      const userData = (session as any).userData;
+      
+      if (backendToken && userData) {
+        // Store token in localStorage for API calls
+        localStorage.setItem('token', backendToken);
+        
+        // Sync with UserContext if not already synced
+        if (!contextUser || contextUser.id !== userData.id) {
+          login(userData);
+        }
+        
+        setDisplayUser(userData);
+        setIsAuth(true);
+        console.log('✅ TopNavbar: Authenticated via NextAuth session', userData);
+      }
+    } 
+    // Check if user is authenticated via context (email/password login)
+    else if (contextUser && contextAuth) {
+      setDisplayUser(contextUser);
+      setIsAuth(true);
+      console.log('✅ TopNavbar: Authenticated via UserContext', contextUser);
+    } 
+    // No authentication - show login/signup buttons
+    else {
+      setDisplayUser(null);
+      setIsAuth(false);
+      console.log('⚠️ TopNavbar: Not authenticated - showing Login/Signup buttons');
+    }
+  }, [session, contextUser, contextAuth, status, login]);
 
   const getInitials = (firstName: string, lastName: string) => {
+    if (!firstName || !lastName) return 'U';
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
   const handleProfileClick = () => {
-    router.push('/profile');
+    setShowProfilePopup(true);
   };
 
   return (
+    <>
     <header className="bg-black px-4 sm:px-6 lg:px-8 py-3 flex-shrink-0 ">
       <div className="flex items-center justify-between gap-4">
         {/* Search Bar - Responsive width */}
@@ -43,7 +94,7 @@ export default function TopNavbar({ onMenuClick }: TopNavbarProps) {
 
         {/* Right Side - Conditional Content */}
         <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-          {isAuthenticated ? (
+          {isAuth ? (
             <>
               {/* Bell Icon */}
               <button className="p-2 rounded-lg hover:bg-gray-800 transition-colors">
@@ -53,9 +104,19 @@ export default function TopNavbar({ onMenuClick }: TopNavbarProps) {
               {/* Profile Avatar */}
               <button 
                 onClick={handleProfileClick}
-                className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-green-500/20"
+                className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-green-500/20 overflow-hidden"
               >
-                {user ? getInitials(user.first_name, user.last_name) : <User className="w-4 h-4" />}
+                {displayUser?.avatar_url ? (
+                  <img 
+                    src={displayUser.avatar_url} 
+                    alt={`${displayUser.first_name || ''} ${displayUser.last_name || ''}`}
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                ) : displayUser ? (
+                  getInitials(displayUser.first_name || '', displayUser.last_name || '')
+                ) : (
+                  <User className="w-4 h-4" />
+                )}
               </button>
             </>
           ) : (
@@ -78,5 +139,12 @@ export default function TopNavbar({ onMenuClick }: TopNavbarProps) {
         </div>
       </div>
     </header>
+    
+    {/* Profile Popup */}
+    <ProfilePopup 
+      isOpen={showProfilePopup} 
+      onClose={() => setShowProfilePopup(false)} 
+    />
+    </>
   );
 }

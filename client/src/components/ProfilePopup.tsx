@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Save } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
+import { useSession, signOut } from 'next-auth/react';
 
 interface ProfilePopupProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface ProfilePopupProps {
 
 const ProfilePopup: React.FC<ProfilePopupProps> = ({ isOpen, onClose }) => {
   const { user, updateUser, logout } = useUser();
+  const { data: session } = useSession();
   const [formData, setFormData] = useState({
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
@@ -19,6 +21,17 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Update form data when user changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        email: user.email || ''
+      });
+    }
+  }, [user]);
 
   if (!isOpen || !user) return null;
 
@@ -36,12 +49,23 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({ isOpen, onClose }) => {
     setSuccess('');
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/profile', {
+      // Get token from localStorage or session
+      let token = localStorage.getItem('token');
+      
+      if (!token && session) {
+        token = (session as any).backendToken;
+      }
+      
+      if (!token) {
+        setError('Authentication token not found. Please login again.');
+        return;
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/profile`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          // Add authorization header if you have token stored
-          // 'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(formData),
       });
@@ -49,7 +73,7 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({ isOpen, onClose }) => {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.detail?.detail || 'Failed to update profile');
+        setError(data.detail || 'Failed to update profile');
         return;
       }
 
@@ -68,11 +92,15 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    // Check if user is logged in via OAuth
+    if (session) {
+      await signOut({ callbackUrl: '/' });
+    } else {
+      logout();
+      window.location.href = '/';
+    }
     onClose();
-    // Redirect to home after logout
-    window.location.href = '/';
   };
 
   return (

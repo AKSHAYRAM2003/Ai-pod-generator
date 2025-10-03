@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, User, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import Image from "next/image";
 
 // --- TYPE DEFINITIONS ---
@@ -52,6 +52,7 @@ const TestimonialCard = ({ testimonial, delay }: { testimonial: Testimonial, del
 const SignUpPage: React.FC = () => {
   const router = useRouter();
   const { login } = useUser();
+  const { data: session, status } = useSession();
   const [showPassword, setShowPassword] = useState(false);
   const [currentStep, setCurrentStep] = useState<SignUpStep>({ step: 'register' });
   const [formData, setFormData] = useState<SignUpFormData>({
@@ -63,6 +64,7 @@ const SignUpPage: React.FC = () => {
   const [verificationCode, setVerificationCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Sample testimonials for the hero section
@@ -97,7 +99,31 @@ const SignUpPage: React.FC = () => {
     setFieldErrors({});
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/register', {
+      // Client-side password validation
+      if (formData.password.length < 8) {
+        setFieldErrors(prev => ({ ...prev, password: 'Password must be at least 8 characters' }));
+        setLoading(false);
+        return;
+      }
+      
+      if (formData.password.length > 72) {
+        setFieldErrors(prev => ({ ...prev, password: 'Password must be less than 72 characters' }));
+        setLoading(false);
+        return;
+      }
+      
+      // Check password complexity
+      const hasUpper = /[A-Z]/.test(formData.password);
+      const hasLower = /[a-z]/.test(formData.password);
+      const hasDigit = /[0-9]/.test(formData.password);
+      
+      if (!hasUpper || !hasLower || !hasDigit) {
+        setFieldErrors(prev => ({ ...prev, password: 'Password must contain uppercase, lowercase, and a number' }));
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +164,7 @@ const SignUpPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/verify-email', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/verify-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -149,12 +175,18 @@ const SignUpPage: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.detail?.detail || 'Verification failed');
+        setError(data.detail || 'Verification failed');
         return;
       }
 
-      // Success - store user data and redirect to home
-      if (data.user) {
+      // Success - store user data, access token, and redirect to home
+      if (data.user && data.access_token) {
+        // Store access token
+        localStorage.setItem('token', data.access_token);
+        if (data.refresh_token) {
+          localStorage.setItem('refreshToken', data.refresh_token);
+        }
+        // Store user data in context
         login(data.user);
       }
       router.push('/');
@@ -191,7 +223,7 @@ const SignUpPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/resend-verification', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/resend-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -201,7 +233,11 @@ const SignUpPage: React.FC = () => {
 
       if (response.ok) {
         setError(''); // Clear any previous errors
-        // Maybe show a success message
+        setSuccess('Verification code resent successfully!');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        const data = await response.json();
+        setError(data.detail || 'Failed to resend code');
       }
     } catch (err) {
       setError('Failed to resend code. Please try again.');
@@ -209,6 +245,23 @@ const SignUpPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Handle Google OAuth session
+  useEffect(() => {
+    if (session && status === 'authenticated') {
+      const backendToken = (session as any).backendToken;
+      const userData = (session as any).userData;
+      
+      if (backendToken && userData) {
+        // Store token in localStorage for API calls
+        localStorage.setItem('token', backendToken);
+        
+        // User successfully authenticated via Google
+        login(userData);
+        router.push('/');
+      }
+    }
+  }, [session, status, login, router]);
 
   // Registration form content
   const renderRegistrationForm = () => (

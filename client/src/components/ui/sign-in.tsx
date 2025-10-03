@@ -1,5 +1,10 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@/contexts/UserContext';
+import { signIn } from 'next-auth/react';
 
 // --- HELPER COMPONENTS (ICONS) ---
 
@@ -27,10 +32,6 @@ interface SignInPageProps {
   description?: React.ReactNode;
   heroImageSrc?: string;
   testimonials?: Testimonial[];
-  onSignIn?: (event: React.FormEvent<HTMLFormElement>) => void;
-  onGoogleSignIn?: () => void;
-  onResetPassword?: () => void;
-  onCreateAccount?: () => void;
 }
 
 // --- SUB-COMPONENTS ---
@@ -59,12 +60,85 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   description = "Access your account and continue your journey with us",
   heroImageSrc,
   testimonials = [],
-  onSignIn,
-  onGoogleSignIn,
-  onResetPassword,
-  onCreateAccount,
 }) => {
+  const router = useRouter();
+  const { login } = useUser();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.detail || 'Login failed');
+        return;
+      }
+
+      // Success - store user data and access token
+      if (data.user && data.access_token) {
+        localStorage.setItem('token', data.access_token);
+        if (data.refresh_token) {
+          localStorage.setItem('refreshToken', data.refresh_token);
+        }
+        login(data.user);
+        router.push('/');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const result = await signIn('google', {
+        callbackUrl: '/',
+        redirect: false
+      });
+      
+      if (result?.error) {
+        setError('Google sign-in failed');
+      } else if (result?.url) {
+        router.push(result.url);
+      }
+    } catch (err) {
+      setError('Google sign-in failed');
+    }
+  };
+
+  const handleResetPassword = () => {
+    // TODO: Navigate to reset password page
+    console.log('Reset password clicked');
+  };
+
+  const handleCreateAccount = () => {
+    // Navigate to signup page
+    router.push('/signup');
+  };
 
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row font-geist w-[100dvw]">
@@ -75,11 +149,25 @@ export const SignInPage: React.FC<SignInPageProps> = ({
             <h1 className="animate-element animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">{title}</h1>
             <p className="animate-element animate-delay-200 text-muted-foreground">{description}</p>
 
-            <form className="space-y-5" onSubmit={onSignIn}>
+            {error && (
+              <div className="animate-element animate-delay-250 flex items-center gap-2 p-4 rounded-2xl bg-red-500/10 border border-red-400/30 text-red-400">
+                <span className="text-sm">{error}</span>
+              </div>
+            )}
+
+            <form className="space-y-5" onSubmit={handleSignIn}>
               <div className="animate-element animate-delay-300">
                 <label className="text-sm font-medium text-muted-foreground">Email Address</label>
                 <GlassInputWrapper>
-                  <input name="email" type="email" placeholder="Enter your email address" className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none" />
+                  <input 
+                    name="email" 
+                    type="email" 
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="Enter your email address" 
+                    className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none" 
+                    required
+                  />
                 </GlassInputWrapper>
               </div>
 
@@ -87,7 +175,15 @@ export const SignInPage: React.FC<SignInPageProps> = ({
                 <label className="text-sm font-medium text-muted-foreground">Password</label>
                 <GlassInputWrapper>
                   <div className="relative">
-                    <input name="password" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none" />
+                    <input 
+                      name="password" 
+                      type={showPassword ? 'text' : 'password'} 
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="Enter your password" 
+                      className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none" 
+                      required
+                    />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-3 flex items-center">
                       {showPassword ? <EyeOff className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" /> : <Eye className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />}
                     </button>
@@ -100,11 +196,15 @@ export const SignInPage: React.FC<SignInPageProps> = ({
                   <input type="checkbox" name="rememberMe" className="custom-checkbox" />
                   <span className="text-foreground/90">Keep me signed in</span>
                 </label>
-                <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-violet-400 transition-colors">Reset password</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); handleResetPassword(); }} className="hover:underline text-violet-400 transition-colors">Reset password</a>
               </div>
 
-              <button type="submit" className="animate-element animate-delay-600 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
-                Sign In
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="animate-element animate-delay-600 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
 
@@ -113,13 +213,13 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               <span className="px-4 text-sm text-muted-foreground bg-background absolute">Or continue with</span>
             </div>
 
-            <button onClick={onGoogleSignIn} className="animate-element animate-delay-800 w-full flex items-center justify-center gap-3 border border-border rounded-2xl py-4 hover:bg-secondary transition-colors">
+            <button onClick={handleGoogleSignIn} className="animate-element animate-delay-800 w-full flex items-center justify-center gap-3 border border-border rounded-2xl py-4 hover:bg-secondary transition-colors">
                 <GoogleIcon />
                 Continue with Google
             </button>
 
             <p className="animate-element animate-delay-900 text-center text-sm text-muted-foreground">
-              New to our platform? <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-violet-400 hover:underline transition-colors">Create Account</a>
+              New to our platform? <a href="#" onClick={(e) => { e.preventDefault(); handleCreateAccount(); }} className="text-violet-400 hover:underline transition-colors">Create Account</a>
             </p>
           </div>
         </div>

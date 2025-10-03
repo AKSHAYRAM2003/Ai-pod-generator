@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Auth Data</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #111;
+            color: white;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: #1a1a1a;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        button {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            margin: 0.5rem;
+        }
+        button:hover {
+            background: #16a34a;
+        }
+        .danger {
+            background: #ef4444;
+        }
+        .danger:hover {
+            background: #dc2626;
+        }
+        .info {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #334155;
+            border-radius: 0.5rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>�� Authentication Manager</h1>
+        <p>Manage your local authentication data</p>
+        
+        <div>
+            <button onclick="checkAuth()">Check Auth Status</button>
+            <button class="danger" onclick="clearAuth()">Clear Auth Data</button>
+        </div>
+        
+        <div id="status" class="info" style="display: none;"></div>
+    </div>
+
+    <script>
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            const status = document.getElementById('status');
+            
+            status.style.display = 'block';
+            status.innerHTML = `
+                <strong>Current Auth Status:</strong><br><br>
+                User: ${user ? 'Found ✅' : 'Not found ❌'}<br>
+                Token: ${token ? 'Found ✅' : 'Not found ❌'}<br><br>
+                ${user ? `User Data:<br>${JSON.stringify(JSON.parse(user), null, 2)}` : ''}
+            `;
+        }
+
+        function clearAuth() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            
+            const status = document.getElementById('status');
+            status.style.display = 'block';
+            status.innerHTML = `
+                <strong>✅ Authentication data cleared!</strong><br><br>
+                All local storage items removed:<br>
+                - user<br>
+                - token<br><br>
+                You can now reload your app to see the Login/Signup buttons.
+            `;
+            
+            setTimeout(() => {
+                window.location.href = 'http://localhost:3000';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

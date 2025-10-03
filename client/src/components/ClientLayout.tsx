@@ -16,12 +16,11 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true); // Default to open on desktop
   const pathname = usePathname();
   
-  // Check if current page is an auth page or standalone page
+  // Check if current page is an auth page
   const isAuthPage = pathname === '/signup' || pathname === '/signin';
-  const isStandalonePage = pathname === '/profile';
   
-  // For auth pages and standalone pages, render children without layout components but with providers
-  if (isAuthPage || isStandalonePage) {
+  // For auth pages, render children without layout components but with providers
+  if (isAuthPage) {
     return (
       <SessionProvider>
         <UserProvider>{children}</UserProvider>

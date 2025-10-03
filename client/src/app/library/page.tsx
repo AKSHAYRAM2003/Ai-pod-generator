@@ -1,3 +1,5 @@
+import ProtectedRouteWrapper from '@/components/ProtectedRouteWrapper';
+
 export default function Library() {
   const savedPodcasts = [
     {
@@ -48,6 +50,7 @@ export default function Library() {
   ];
 
   return (
+    <ProtectedRouteWrapper>
     <main className="flex-1 bg-black p-4 sm:p-6 lg:p-8 overflow-y-auto">
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
@@ -128,5 +131,6 @@ export default function Library() {
         </div>
       </section>
     </main>
+    </ProtectedRouteWrapper>
   );
 }

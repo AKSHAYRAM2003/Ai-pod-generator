@@ -14,7 +14,8 @@ from app.schemas.auth import (
     UserRegistrationRequest, UserLoginRequest, UserProfileResponse,
     UserRegistrationResponse, EmailVerificationResponse, UserLoginResponse,
     TokenRefreshResponse, EmailVerificationRequest, PasswordResetRequest,
-    PasswordResetVerifyRequest, GoogleOAuthRequest, GoogleOAuthResponse
+    PasswordResetVerifyRequest, GoogleOAuthRequest, GoogleOAuthResponse,
+    UserResponse
 )
 from app.core.security import SecurityUtils
 from app.core.config import settings
@@ -162,8 +163,6 @@ class AuthService:
             await self.db.commit()
             
             logger.info(f"✅ Email verified successfully: {user.email}")
-            
-            from ..schemas.auth import UserResponse
             
             return EmailVerificationResponse(
                 message="Email verified successfully! Welcome to AiPod!",
@@ -785,3 +784,65 @@ class AuthService:
         )
         
         self.db.add(audit_log)
+
+    async def update_user_profile(
+        self,
+        user_id: int,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        username: Optional[str] = None,
+        bio: Optional[str] = None,
+        avatar_url: Optional[str] = None,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None
+    ) -> User:
+        """Update user profile information"""
+        try:
+            # Get user
+            user = await self.db.get(User, user_id)
+            if not user:
+                raise NotFoundException("User not found")
+            
+            # Check if username is taken (if provided and different)
+            if username and username != user.username:
+                existing_user = await self.db.execute(
+                    select(User).where(User.username == username)
+                )
+                if existing_user.scalar_one_or_none():
+                    raise ConflictException("Username already taken")
+            
+            # Update fields
+            if first_name is not None:
+                user.first_name = first_name
+            if last_name is not None:
+                user.last_name = last_name
+            if username is not None:
+                user.username = username
+            if bio is not None:
+                user.bio = bio
+            if avatar_url is not None:
+                user.avatar_url = avatar_url
+            
+            user.updated_at = datetime.utcnow()
+            
+            await self.db.commit()
+            await self.db.refresh(user)
+            
+            # Log audit event
+            await self._log_audit_event(
+                user.id,
+                AuditLogAction.PROFILE_UPDATED,
+                "Profile updated",
+                ip_address,
+                user_agent
+            )
+            
+            return user
+            
+        except AppException:
+            await self.db.rollback()
+            raise
+        except Exception as e:
+            await self.db.rollback()
+            logger.error(f"Error updating user profile: {str(e)}")
+            raise AppException("Failed to update profile")

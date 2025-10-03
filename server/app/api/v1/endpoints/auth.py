@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Form, File, UploadFile
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 import logging
 
 from app.core.database import get_db
+from app.core.security import SecurityUtils
 from app.services.auth_service import AuthService
 from app.schemas.auth import (
     UserRegistrationRequest,
@@ -22,7 +23,8 @@ from app.schemas.auth import (
     PasswordResetResponse,
     ErrorResponse,
     GoogleOAuthRequest,
-    GoogleOAuthResponse
+    GoogleOAuthResponse,
+    UserProfileUpdateRequest
 )
 from app.core.exceptions import (
     ValidationException,
@@ -447,6 +449,110 @@ async def google_oauth(
         raise HTTPException(
             status_code=500,
             detail={"detail": "Google authentication failed", "error_code": "GOOGLE_OAUTH_FAILED"}
+        )
+
+
+@router.patch(
+    "/profile",
+    response_model=dict,
+    summary="Update user profile",
+    description="Update user profile information (use JSON for basic updates, form-data for avatar)"
+)
+async def update_profile(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Update user profile - accepts both JSON and form-data"""
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authorization token"
+        )
+    
+    try:
+        # Get user from token
+        user_id = SecurityUtils.get_user_id_from_token(credentials.credentials)
+        
+        # Check content type to determine if JSON or form-data
+        content_type = request.headers.get('content-type', '')
+        
+        first_name = None
+        last_name = None
+        username = None
+        bio = None
+        avatar_url = None
+        
+        if 'application/json' in content_type:
+            # JSON request
+            body = await request.json()
+            first_name = body.get('first_name')
+            last_name = body.get('last_name')
+            username = body.get('username')
+            bio = body.get('bio')
+        elif 'multipart/form-data' in content_type:
+            # Form data request - handle avatar upload
+            form = await request.form()
+            first_name = form.get('first_name')
+            last_name = form.get('last_name')
+            username = form.get('username')
+            bio = form.get('bio')
+            avatar = form.get('avatar')
+            
+            if avatar and hasattr(avatar, 'content_type'):
+                # Validate file type
+                if not avatar.content_type.startswith('image/'):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid file type. Only images are allowed."
+                    )
+                
+                # Validate file size (5MB limit)
+                content = await avatar.read()
+                if len(content) > 5 * 1024 * 1024:  # 5MB
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="File too large. Maximum size is 5MB."
+                    )
+                
+                # Store as base64
+                import base64
+                avatar_url = f"data:{avatar.content_type};base64,{base64.b64encode(content).decode()}"
+        
+        ip_address, user_agent = get_client_info(request)
+        
+        auth_service = AuthService(db)
+        user = await auth_service.update_user_profile(
+            user_id=user_id,
+            first_name=first_name,
+            last_name=last_name,
+            username=username,
+            bio=bio,
+            avatar_url=avatar_url,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        
+        return {
+            "id": str(user.id),
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "username": user.username,
+            "bio": user.bio,
+            "avatar_url": user.avatar_url,
+            "is_email_verified": user.is_email_verified,
+            "created_at": user.created_at.isoformat(),
+            "updated_at": user.updated_at.isoformat()
+        }
+        
+    except AppException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.error(f"Profile update error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
         )
 
 

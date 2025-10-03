@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Avatar Issue - Clear Auth</title>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 2.5rem;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2rem;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        .status {
+            background: #f3f4f6;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .status-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .label {
+            font-weight: 600;
+            color: #374151;
+        }
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .badge-danger {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        .badge-success {
+            background: #d1fae5;
+            color: #059669;
+        }
+        .alert {
+            background: #fef2f2;
+            border: 2px solid #fecaca;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            color: #991b1b;
+            font-weight: 600;
+        }
+        .success-alert {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #166534;
+        }
+        button {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.75rem;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .hidden {
+            display: none;
+        }
+        .code {
+            font-family: 'Courier New', monospace;
+            background: #1f2937;
+            color: #10b981;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">🔐</div>
+        <h1>Fix Avatar Issue</h1>
+        <p class="subtitle">Clear authentication data to fix the display</p>
+        
+        <div id="problem-alert" class="alert hidden">
+            ⚠️ <strong>Issue Detected!</strong> Avatar showing when not logged in.
+        </div>
+        
+        <div id="success-alert" class="alert success-alert hidden">
+            ✅ <strong>All Clear!</strong> No stale auth data found.
+        </div>
+        
+        <div class="status">
+            <div class="status-item">
+                <span class="label">User Data:</span>
+                <span id="user-status" class="badge">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span class="label">Auth Token:</span>
+                <span id="token-status" class="badge">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span class="label">Expected Display:</span>
+                <span id="expected-status" class="badge">Checking...</span>
+            </div>
+        </div>
+        
+        <button id="clear-btn" class="btn-danger" onclick="clearAuthNow()">
+            🗑️ Clear Auth Data Now
+        </button>
+        
+        <button class="btn-primary" onclick="openApp()">
+            🚀 Open App
+        </button>
+        
+        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e5e7eb; text-align: left;">
+            <p style="font-size: 0.875rem; color: #666; margin-bottom: 0.5rem;">
+                <strong>What this does:</strong>
+            </p>
+            <ul style="font-size: 0.875rem; color: #666; padding-left: 1.5rem;">
+                <li>Removes <span class="code">user</span> from localStorage</li>
+                <li>Removes <span class="code">token</span> from localStorage</li>
+                <li>Forces the app to show Login/Signup buttons</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function checkStatus() {
+            const user = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            
+            const userStatus = document.getElementById('user-status');
+            const tokenStatus = document.getElementById('token-status');
+            const expectedStatus = document.getElementById('expected-status');
+            const problemAlert = document.getElementById('problem-alert');
+            const successAlert = document.getElementById('success-alert');
+            const clearBtn = document.getElementById('clear-btn');
+            
+            // Update user status
+            if (user) {
+                userStatus.textContent = '❌ Found';
+                userStatus.className = 'badge badge-danger';
+            } else {
+                userStatus.textContent = '✅ Clear';
+                userStatus.className = 'badge badge-success';
+            }
+            
+            // Update token status
+            if (token) {
+                tokenStatus.textContent = '❌ Found';
+                tokenStatus.className = 'badge badge-danger';
+            } else {
+                tokenStatus.textContent = '✅ Clear';
+                tokenStatus.className = 'badge badge-success';
+            }
+            
+            // Update expected display
+            if (user || token) {
+                expectedStatus.textContent = '❌ Avatar (Wrong!)';
+                expectedStatus.className = 'badge badge-danger';
+                problemAlert.classList.remove('hidden');
+                successAlert.classList.add('hidden');
+                clearBtn.classList.remove('hidden');
+            } else {
+                expectedStatus.textContent = '✅ Login/Signup';
+                expectedStatus.className = 'badge badge-success';
+                problemAlert.classList.add('hidden');
+                successAlert.classList.remove('hidden');
+                clearBtn.classList.add('hidden');
+            }
+        }
+        
+        function clearAuthNow() {
+            if (confirm('Clear all authentication data?\n\nThis will:\n• Remove user data\n• Remove auth token\n• Fix the avatar display issue')) {
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                
+                // Recheck status
+                checkStatus();
+                
+                // Show success and redirect
+                alert('✅ Auth data cleared successfully!\n\nRedirecting to app...');
+                setTimeout(() => {
+                    window.location.href = 'http://localhost:3000';
+                }, 500);
+            }
+        }
+        
+        function openApp() {
+            window.location.href = 'http://localhost:3000';
+        }
+        
+        // Auto-check on load
+        window.onload = checkStatus;
+    </script>
+</body>
+</html>

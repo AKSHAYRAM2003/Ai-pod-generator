@@ -4,13 +4,19 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 import secrets
 import string
+import logging
 from email_validator import validate_email, EmailNotValidError
 
 from app.core.config import settings
 from app.core.exceptions import AuthenticationException, ValidationException
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+logger = logging.getLogger(__name__)
+
+# Password hashing context - with custom bcrypt handling
+pwd_context = CryptContext(
+    schemes=["bcrypt"], 
+    deprecated="auto"
+)
 
 
 class SecurityUtils:
@@ -18,19 +24,54 @@ class SecurityUtils:
     
     @staticmethod
     def hash_password(password: str) -> str:
-        """Hash a password using bcrypt"""
-        # Bcrypt has a 72-byte limit, truncate if necessary
-        if len(password.encode('utf-8')) > 72:
-            password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-        return pwd_context.hash(password)
+        """Hash a password using bcrypt - truncates to 72 bytes if needed"""
+        try:
+            # First, ensure password is within 72 bytes (bcrypt limit)
+            password_bytes = password.encode('utf-8')
+            if len(password_bytes) > 72:
+                # Truncate to 72 bytes, handling UTF-8 properly
+                password_bytes = password_bytes[:72]
+                # Decode back, handling potential cut-off multi-byte characters
+                for i in range(len(password_bytes), max(len(password_bytes) - 4, 0), -1):
+                    try:
+                        password = password_bytes[:i].decode('utf-8')
+                        break
+                    except UnicodeDecodeError:
+                        continue
+            
+            return pwd_context.hash(password)
+        except Exception as e:
+            # If hashing fails for any reason, try with a safer truncation
+            logger.error(f"Password hashing error: {e}. Attempting safe truncation.")
+            # Take only first 72 characters (not bytes) as a fallback
+            safe_password = password[:72]
+            return pwd_context.hash(safe_password)
     
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
-        """Verify a password against its hash"""
-        # Bcrypt has a 72-byte limit, truncate if necessary
-        if len(plain_password.encode('utf-8')) > 72:
-            plain_password = plain_password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-        return pwd_context.verify(plain_password, hashed_password)
+        """Verify a password against its hash - truncates to 72 bytes if needed"""
+        try:
+            # Ensure password is within 72 bytes
+            password_bytes = plain_password.encode('utf-8')
+            if len(password_bytes) > 72:
+                # Truncate to 72 bytes, handling UTF-8 properly
+                password_bytes = password_bytes[:72]
+                # Decode back, handling potential cut-off multi-byte characters
+                for i in range(len(password_bytes), max(len(password_bytes) - 4, 0), -1):
+                    try:
+                        plain_password = password_bytes[:i].decode('utf-8')
+                        break
+                    except UnicodeDecodeError:
+                        continue
+            
+            return pwd_context.verify(plain_password, hashed_password)
+        except Exception:
+            # If verification fails, try with character truncation
+            safe_password = plain_password[:72]
+            try:
+                return pwd_context.verify(safe_password, hashed_password)
+            except Exception:
+                return False
     
     @staticmethod
     def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:

@@ -15,10 +15,26 @@ class UserStatus(str, Enum):
 class UserRegistrationRequest(BaseModel):
     """Schema for user registration request"""
     email: EmailStr = Field(..., description="User's email address")
-    password: str = Field(..., min_length=8, max_length=128, description="User's password")
+    password: str = Field(..., min_length=8, max_length=72, description="User's password (max 72 characters for bcrypt)")
     first_name: str = Field(..., min_length=2, max_length=50, description="User's first name")
     last_name: str = Field(..., min_length=2, max_length=50, description="User's last name")
     username: Optional[str] = Field(None, min_length=3, max_length=30, description="Optional username")
+    
+    @validator('password')
+    def validate_password(cls, v):
+        """Validate password complexity and length"""
+        if len(v.encode('utf-8')) > 72:
+            raise ValueError('Password is too long (max 72 bytes)')
+        
+        # Check password complexity
+        has_upper = any(c.isupper() for c in v)
+        has_lower = any(c.islower() for c in v)
+        has_digit = any(c.isdigit() for c in v)
+        
+        if not (has_upper and has_lower and has_digit):
+            raise ValueError('Password must contain at least one uppercase letter, one lowercase letter, and one number')
+        
+        return v
     
     @validator('first_name', 'last_name')
     def validate_names(cls, v):
@@ -263,6 +279,24 @@ class UserProfileResponse(BaseModel):
                 "bio": "Podcast enthusiast and AI lover",
                 "created_at": "2024-01-15T10:30:00Z",
                 "last_login_at": "2024-01-20T14:22:00Z"
+            }
+        }
+
+
+class UserProfileUpdateRequest(BaseModel):
+    """Schema for updating user profile (JSON)"""
+    first_name: Optional[str] = Field(None, min_length=2, max_length=50, description="User's first name")
+    last_name: Optional[str] = Field(None, min_length=2, max_length=50, description="User's last name")
+    username: Optional[str] = Field(None, min_length=3, max_length=30, description="User's username")
+    bio: Optional[str] = Field(None, max_length=500, description="User's bio")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "first_name": "John",
+                "last_name": "Doe",
+                "username": "johndoe",
+                "bio": "Podcast enthusiast"
             }
         }
 

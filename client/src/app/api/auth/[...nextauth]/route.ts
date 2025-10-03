@@ -8,6 +8,10 @@ const handler = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     })
   ],
+  pages: {
+    signIn: '/signin',
+    error: '/auth/error',
+  },
   callbacks: {
     async signIn({ user, account, profile }) {
       if (account?.provider === 'google') {
@@ -29,33 +33,45 @@ const handler = NextAuth({
 
           if (response.ok) {
             const data = await response.json()
-            // Store backend tokens or user data if needed
-            user.backendToken = data.access_token
-            user.userData = data.user
+            // Store backend data in user object
+            Object.assign(user, {
+              backendToken: data.access_token,
+              refreshToken: data.refresh_token,
+              userData: data.user,
+              isNewUser: data.is_new_user
+            })
             return true
+          } else {
+            console.error('Backend OAuth failed:', await response.text())
+            return false
           }
         } catch (error) {
           console.error('Backend OAuth error:', error)
+          return false
         }
       }
       return true
     },
     async jwt({ token, user, account }) {
+      // Persist user data and tokens
       if (account && user) {
         token.backendToken = (user as any).backendToken
+        token.refreshToken = (user as any).refreshToken
         token.userData = (user as any).userData
+        token.isNewUser = (user as any).isNewUser
       }
       return token
     },
     async session({ session, token }) {
-      session.backendToken = token.backendToken as string
-      session.userData = token.userData
+      // Send properties to the client
+      Object.assign(session, {
+        backendToken: token.backendToken,
+        refreshToken: token.refreshToken,
+        userData: token.userData,
+        isNewUser: token.isNewUser
+      })
       return session
     },
-  },
-  pages: {
-    signIn: '/signin',
-    error: '/auth/error',
   },
 })
 

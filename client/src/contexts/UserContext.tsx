@@ -7,7 +7,10 @@ interface User {
   email: string;
   first_name: string;
   last_name: string;
+  username?: string;
+  avatar_url?: string;
   is_verified: boolean;
+  status: string;
   created_at: string;
 }
 
@@ -32,15 +35,36 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   // Check if user is logged in on mount
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const storedToken = localStorage.getItem('token');
+    
+    console.log('🔍 UserContext: Checking authentication on mount', {
+      hasUser: !!storedUser,
+      hasToken: !!storedToken,
+      user: storedUser ? JSON.parse(storedUser) : null
+    });
+    
+    if (storedUser && storedToken) {
       try {
         const userData = JSON.parse(storedUser);
+        // Verify token is not expired (basic check)
+        // In production, you'd validate the JWT token properly
         setUser(userData);
         setIsAuthenticated(true);
+        console.log('✅ UserContext: User authenticated from localStorage', userData);
       } catch (error) {
-        console.error('Error parsing stored user data:', error);
+        console.error('❌ UserContext: Error parsing stored user data:', error);
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        setUser(null);
+        setIsAuthenticated(false);
       }
+    } else {
+      // No valid user/token found - ensure clean state
+      console.log('⚠️ UserContext: No valid user/token found - clearing auth state');
+      setUser(null);
+      setIsAuthenticated(false);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
     }
   }, []);
 
@@ -54,7 +78,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('user');
-    localStorage.removeItem('token'); // Remove token if stored
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
   };
 
   const updateUser = (userData: Partial<User>) => {
