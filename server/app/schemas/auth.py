@@ -359,6 +359,7 @@ class PasswordResetRequest(BaseModel):
 
 class PasswordResetVerifyRequest(BaseModel):
     """Schema for password reset verification with code"""
+    email: EmailStr = Field(..., description="User's email address")
     code: str = Field(..., min_length=6, max_length=6, description="6-digit reset code")
     new_password: str = Field(..., min_length=8, max_length=128, description="New password")
     
@@ -374,12 +375,21 @@ class PasswordResetVerifyRequest(BaseModel):
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
-        # Keep it simple - just minimum length requirement
+        
+        # Check password complexity
+        has_upper = any(c.isupper() for c in v)
+        has_lower = any(c.islower() for c in v)
+        has_digit = any(c.isdigit() for c in v)
+        
+        if not (has_upper and has_lower and has_digit):
+            raise ValueError('Password must contain at least one uppercase letter, one lowercase letter, and one number')
+        
         return v
     
     class Config:
         schema_extra = {
             "example": {
+                "email": "john.doe@example.com",
                 "code": "123456",
                 "new_password": "NewSecurePass123!"
             }

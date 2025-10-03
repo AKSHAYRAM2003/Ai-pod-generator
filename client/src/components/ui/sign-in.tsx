@@ -160,9 +160,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   };
 
   const handleResetPassword = () => {
-    // TODO: Navigate to reset password page
-    console.log('Reset password clicked');
-    router.push('/reset-password');
+    router.push('/forgot-password');
   };
 
   const handleCreateAccount = () => {
