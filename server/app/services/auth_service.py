@@ -14,7 +14,7 @@ from app.schemas.auth import (
     UserRegistrationRequest, UserLoginRequest, UserProfileResponse,
     UserRegistrationResponse, EmailVerificationResponse, UserLoginResponse,
     TokenRefreshResponse, EmailVerificationRequest, PasswordResetRequest,
-    PasswordResetVerifyRequest
+    PasswordResetVerifyRequest, GoogleOAuthRequest, GoogleOAuthResponse
 )
 from app.core.security import SecurityUtils
 from app.core.config import settings
@@ -489,6 +489,108 @@ class AuthService:
                 raise
             logger.error(f"Email verification by code failed: {str(e)}")
             raise AppException("Email verification failed", status_code=500, error_code="VERIFICATION_FAILED")
+
+    async def google_oauth_login(
+        self,
+        oauth_data: GoogleOAuthRequest,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None
+    ) -> GoogleOAuthResponse:
+        """Handle Google OAuth login/registration"""
+        try:
+            # Check if user exists
+            existing_user = await self.db.execute(
+                select(User).where(User.email == oauth_data.email.lower())
+            )
+            existing_user = existing_user.scalar_one_or_none()
+            
+            is_new_user = False
+            
+            if existing_user:
+                # User exists, update Google info if needed
+                user = existing_user
+                if not user.google_id:
+                    user.google_id = oauth_data.google_id
+                if oauth_data.avatar_url and not user.avatar_url:
+                    user.avatar_url = oauth_data.avatar_url
+                
+                # Verify email if not already verified
+                if not user.is_email_verified:
+                    user.is_email_verified = True
+                    user.status = UserStatus.ACTIVE
+                    
+            else:
+                # Create new user
+                is_new_user = True
+                user = User(
+                    email=oauth_data.email.lower(),
+                    first_name=oauth_data.first_name.strip(),
+                    last_name=oauth_data.last_name.strip(),
+                    google_id=oauth_data.google_id,
+                    avatar_url=oauth_data.avatar_url,
+                    is_email_verified=True,  # Google emails are pre-verified
+                    status=UserStatus.ACTIVE,
+                    hashed_password="",  # No password for OAuth users
+                    login_count=0
+                )
+                self.db.add(user)
+                await self.db.flush()  # Get user ID
+            
+            # Generate JWT tokens
+            access_token = SecurityUtils.create_access_token({"sub": str(user.id)})
+            refresh_token_obj = await self._create_refresh_token(user.id, ip_address, user_agent)
+            
+            # Update last login
+            user.last_login_at = datetime.utcnow()
+            user.login_count += 1
+            
+            # Log authentication
+            action = AuditLogAction.USER_REGISTERED if is_new_user else AuditLogAction.USER_LOGIN
+            await self._log_audit_event(
+                user.id,
+                action,
+                f"Google OAuth {'registration' if is_new_user else 'login'}",
+                ip_address,
+                user_agent
+            )
+            
+            # Send welcome email for new users (non-blocking)
+            if is_new_user:
+                try:
+                    await email_service.send_welcome_email(user.email, user.first_name)
+                except Exception as e:
+                    logger.warning(f"Failed to send welcome email to {user.email}: {str(e)}")
+            
+            # Commit transaction
+            await self.db.commit()
+            
+            logger.info(f"✅ Google OAuth successful: {user.email} ({'new user' if is_new_user else 'existing user'})")
+            
+            return GoogleOAuthResponse(
+                message=f"Google authentication successful! {'Welcome to AiPod!' if is_new_user else 'Welcome back!'}",
+                user=UserResponse(
+                    id=str(user.id),
+                    email=user.email,
+                    first_name=user.first_name,
+                    last_name=user.last_name,
+                    username=user.username,
+                    is_verified=user.is_email_verified,
+                    status=user.status,
+                    created_at=user.created_at
+                ),
+                access_token=access_token,
+                refresh_token=refresh_token_obj.token,
+                token_type="bearer",
+                expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+                is_new_user=is_new_user
+            )
+            
+        except Exception as e:
+            await self.db.rollback()
+            if isinstance(e, (ValidationException, NotFoundException, AuthenticationException)):
+                raise
+            logger.error(f"Google OAuth failed: {str(e)}")
+            raise AppException("Google authentication failed", status_code=500, error_code="GOOGLE_OAUTH_FAILED")
 
     # Private helper methods
     

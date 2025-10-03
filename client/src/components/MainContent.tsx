@@ -112,6 +112,20 @@ export default function MainContent() {
         <div className="flex items-center space-x-4">
           <h1 className="text-xl font-bold text-white">🎧 AiPod</h1>
         </div>
+        <div className="flex items-center space-x-4">
+          <Link
+            href="/signin"
+            className="text-gray-400 hover:text-white transition-colors text-sm sm:text-base"
+          >
+            Sign In
+          </Link>
+          <Link
+            href="/signup"
+            className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg transition-colors text-sm sm:text-base"
+          >
+            Sign Up
+          </Link>
+        </div>
       </div> */}
 
       {/* Welcome Section */}

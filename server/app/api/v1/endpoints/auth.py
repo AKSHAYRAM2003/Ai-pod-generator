@@ -20,7 +20,9 @@ from app.schemas.auth import (
     PasswordResetRequest,
     PasswordResetVerifyRequest,
     PasswordResetResponse,
-    ErrorResponse
+    ErrorResponse,
+    GoogleOAuthRequest,
+    GoogleOAuthResponse
 )
 from app.core.exceptions import (
     ValidationException,
@@ -395,6 +397,56 @@ async def verify_password_reset(
         raise HTTPException(
             status_code=500,
             detail={"detail": "Password reset failed", "error_code": "PASSWORD_RESET_FAILED"}
+        )
+
+
+@router.post(
+    "/google-oauth",
+    response_model=GoogleOAuthResponse,
+    summary="Google OAuth authentication",
+    description="Authenticate user with Google OAuth data",
+    responses={
+        200: {"description": "Google authentication successful"},
+        400: {"model": ErrorResponse, "description": "Invalid request data"},
+        500: {"model": ErrorResponse, "description": "Internal server error"}
+    }
+)
+async def google_oauth(
+    oauth_data: GoogleOAuthRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Handle Google OAuth authentication"""
+    try:
+        ip_address, user_agent = get_client_info(request)
+        
+        auth_service = AuthService(db)
+        response = await auth_service.google_oauth_login(
+            oauth_data,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        
+        logger.info(f"Google OAuth successful: {oauth_data.email}")
+        return response
+        
+    except (ValidationException, ConflictException) as e:
+        logger.warning(f"Google OAuth validation error: {e.detail}")
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"detail": e.detail, "error_code": e.error_code}
+        )
+    except AppException as e:
+        logger.error(f"Google OAuth app error: {e.detail}")
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"detail": e.detail, "error_code": e.error_code}
+        )
+    except Exception as e:
+        logger.error(f"Unexpected Google OAuth error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={"detail": "Google authentication failed", "error_code": "GOOGLE_OAUTH_FAILED"}
         )
 
 
