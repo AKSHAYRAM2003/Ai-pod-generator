@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protected Routes Test - AI Pod Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-section h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+
+        .test-step {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .test-step h3 {
+            color: #667eea;
+            font-size: 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .test-step p {
+            color: #555;
+            line-height: 1.6;
+            margin-left: 34px;
+        }
+
+        .test-step ul {
+            margin-left: 50px;
+            margin-top: 8px;
+        }
+
+        .test-step li {
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(245, 87, 108, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            color: #0c5460;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-left: 4px solid #155724;
+            color: #155724;
+        }
+
+        .code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #d63384;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Protected Routes Authentication Test</h1>
+        <p class="subtitle">Verify Library and Discover page protection</p>
+
+        <div class="alert alert-success">
+            <span style="font-size: 24px;">✅</span>
+            <div>
+                <strong>Implementation Complete!</strong>
+                Protected routes are now properly configured with authentication checks.
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test Scenarios</h2>
+
+            <div class="test-step">
+                <h3>
+                    <span class="step-number">1</span>
+                    Test Without Login
+                    <span class="status-badge status-pending">Action Required</span>
+                </h3>
+                <p>When NOT logged in, protected pages should redirect to signin:</p>
+                <ul>
+                    <li>Clear browser data using the utility</li>
+                    <li>Try to access <span class="code">/library</span> - should redirect to <span class="code">/signin</span></li>
+                    <li>Try to access <span class="code">/discover</span> - should redirect to <span class="code">/signin</span></li>
+                    <li>Should see "Login" and "Signup" buttons in navbar</li>
+                    <li>Should NOT see avatar or bell icon</li>
+                </ul>
+            </div>
+
+            <div class="test-step">
+                <h3>
+                    <span class="step-number">2</span>
+                    Test After Login
+                    <span class="status-badge status-pending">Action Required</span>
+                </h3>
+                <p>After logging in, protected pages should display content:</p>
+                <ul>
+                    <li>Create new account or login with existing credentials</li>
+                    <li>Access <span class="code">/library</span> - should show library content</li>
+                    <li>Access <span class="code">/discover</span> - should show discover content</li>
+                    <li>Should see avatar and bell icon in navbar</li>
+                    <li>Should NOT see "Login" or "Signup" buttons</li>
+                </ul>
+            </div>
+
+            <div class="test-step">
+                <h3>
+                    <span class="step-number">3</span>
+                    Test Session Persistence
+                    <span class="status-badge status-info">Verification</span>
+                </h3>
+                <p>Verify that authentication persists correctly:</p>
+                <ul>
+                    <li>After login, refresh the page - should stay logged in</li>
+                    <li>Navigate between Library and Discover - should stay logged in</li>
+                    <li>Close and reopen browser - may need to login again (session timeout)</li>
+                </ul>
+            </div>
+
+            <div class="test-step">
+                <h3>
+                    <span class="step-number">4</span>
+                    Test Logout Flow
+                    <span class="status-badge status-pending">Action Required</span>
+                </h3>
+                <p>After logging out, protection should be re-enabled:</p>
+                <ul>
+                    <li>Click on avatar and logout</li>
+                    <li>Try to access <span class="code">/library</span> - should redirect to <span class="code">/signin</span></li>
+                    <li>Try to access <span class="code">/discover</span> - should redirect to <span class="code">/signin</span></li>
+                    <li>Navbar should show "Login" and "Signup" buttons again</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>What Was Fixed</h2>
+            <div class="test-step">
+                <h3>
+                    <span class="step-number">✓</span>
+                    Enhanced ProtectedRouteWrapper
+                    <span class="status-badge status-success">Complete</span>
+                </h3>
+                <p>Improvements made to the protection component:</p>
+                <ul>
+                    <li>Added comprehensive authentication checks (NextAuth + UserContext)</li>
+                    <li>Improved loading state management with better UX</li>
+                    <li>Added console logging for debugging authentication flow</li>
+                    <li>Double-check authentication before rendering protected content</li>
+                    <li>Automatic redirect to <span class="code">/signin</span> for unauthenticated users</li>
+                    <li>Beautiful loading spinner while verifying authentication</li>
+                </ul>
+            </div>
+
+            <div class="test-step">
+                <h3>
+                    <span class="step-number">✓</span>
+                    Pages Already Protected
+                    <span class="status-badge status-success">Verified</span>
+                </h3>
+                <p>Both critical pages are wrapped with protection:</p>
+                <ul>
+                    <li><span class="code">/library/page.tsx</span> - Uses ProtectedRouteWrapper</li>
+                    <li><span class="code">/discover/page.tsx</span> - Uses ProtectedRouteWrapper</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" onclick="clearAuthData()">
+                🧹 Clear Auth Data
+            </button>
+            <button class="btn-secondary" onclick="openApp()">
+                🏠 Open Main App
+            </button>
+            <button class="btn-success" onclick="openLibrary()">
+                📚 Test Library Page
+            </button>
+            <button class="btn-success" onclick="openDiscover()">
+                🔍 Test Discover Page
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function clearAuthData() {
+            console.log('Clearing authentication data...');
+            
+            // Clear localStorage
+            localStorage.clear();
+            
+            // Clear sessionStorage
+            sessionStorage.clear();
+            
+            // Clear cookies
+            document.cookie.split(";").forEach(function(c) {
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            });
+            
+            alert('✅ Authentication data cleared!\n\nYou are now logged out.\n\nClick OK to reload the main app.');
+            window.location.href = 'http://localhost:3000';
+        }
+
+        function openApp() {
+            window.open('http://localhost:3000', '_blank');
+        }
+
+        function openLibrary() {
+            window.open('http://localhost:3000/library', '_blank');
+        }
+
+        function openDiscover() {
+            window.open('http://localhost:3000/discover', '_blank');
+        }
+
+        // Auto-check what's in storage on load
+        window.addEventListener('load', () => {
+            console.log('=== Current Authentication State ===');
+            console.log('localStorage:', localStorage);
+            console.log('sessionStorage:', sessionStorage);
+            
+            const user = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            
+            if (user && token) {
+                console.log('User is logged in:', JSON.parse(user));
+                console.log('Has auth token:', !!token);
+            } else {
+                console.log('User is NOT logged in');
+            }
+        });
+    </script>
+</body>
+</html>

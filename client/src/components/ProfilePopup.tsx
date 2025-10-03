@@ -335,7 +335,7 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({ isOpen, onClose }) => {
             <button
               type="button"
               onClick={handleLogout}
-              className="w-full py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+              className="w-full py-3  text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg  transition-colors"
             >
               Sign Out
             </button>

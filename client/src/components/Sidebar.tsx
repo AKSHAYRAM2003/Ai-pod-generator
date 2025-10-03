@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Compass, BookOpen, PanelLeftOpen, PanelLeftClose, Podcast } from 'lucide-react';
+import { Home, Compass, BookOpen, PanelLeftOpen, PanelLeftClose, Podcast, Mic2 } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -18,6 +18,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     { icon: Home, label: 'Home', href: '/' },
     { icon: Compass, label: 'Discover', href: '/discover' },
     { icon: BookOpen, label: 'Library', href: '/library' },
+    { icon: Mic2, label: 'My Pods', href: '/mypods' },
   ];
 
   const handleItemClick = (itemLabel: string, href: string) => {

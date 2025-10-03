@@ -102,14 +102,14 @@ export default function TopNavbar({ onMenuClick }: TopNavbarProps) {
           {isAuth ? (
             <>
               {/* Bell Icon */}
-              <button className="p-2 rounded-lg hover:bg-gray-800 transition-colors">
+              <button className="p-2 rounded-full hover:bg-neutral-800 transition-colors">
                 <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </button>
               
               {/* Profile Avatar */}
               <button 
                 onClick={handleProfileClick}
-                className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-green-500/20 overflow-hidden"
+                className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-r from-green-500 to-green-600 rounded-full border-2 flex items-center justify-center text-white text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-green-500/20 overflow-hidden"
               >
                 {displayUser?.avatar_url ? (
                   <img 
