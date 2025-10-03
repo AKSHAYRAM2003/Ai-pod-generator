@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to {{ app_name }}!</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #8b5cf6;
+            margin-bottom: 10px;
+        }
+        h1 {
+            color: #1f2937;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .emoji {
+            font-size: 48px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .content {
+            margin-bottom: 30px;
+            font-size: 16px;
+            line-height: 1.7;
+        }
+        .get-started-button {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .get-started-button a {
+            display: inline-block;
+            background-color: #10b981;
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        .get-started-button a:hover {
+            background-color: #059669;
+        }
+        .features {
+            background-color: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .features ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .features li {
+            margin-bottom: 8px;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">{{ app_name }}</div>
+        </div>
+        
+        <div class="emoji">🎉</div>
+        
+        <h1>Welcome to {{ app_name }}!</h1>
+        
+        <div class="greeting">
+            Hi {{ first_name }},
+        </div>
+        
+        <div class="content">
+            <p>Congratulations! Your account has been successfully verified and you're all set to start creating amazing AI-powered podcasts.</p>
+            
+            <p>We're thrilled to have you join our community of podcast creators who are using AI to tell compelling stories and share knowledge.</p>
+        </div>
+        
+        <div class="features">
+            <h3>Here's what you can do next:</h3>
+            <ul>
+                <li>🎙️ <strong>Create your first podcast</strong> - Use our AI tools to generate engaging content</li>
+                <li>👤 <strong>Complete your profile</strong> - Add a bio and avatar to personalize your account</li>
+                <li>🔧 <strong>Explore settings</strong> - Customize your preferences and notification settings</li>
+                <li>📚 <strong>Browse the library</strong> - Discover podcasts created by our community</li>
+            </ul>
+        </div>
+        
+        <div class="get-started-button">
+            <a href="{{ frontend_url }}" target="_blank">Get Started</a>
+        </div>
+        
+        <div class="content">
+            <p>If you have any questions or need help getting started, our support team is here to help. We're committed to making your podcast creation journey as smooth as possible.</p>
+            
+            <p>Happy podcasting! 🎧</p>
+        </div>
+        
+        <div class="footer">
+            <p>
+                Best regards,<br>
+                The {{ app_name }} Team
+            </p>
+            <p>
+                Questions? Contact us at <a href="mailto:{{ support_email }}">{{ support_email }}</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

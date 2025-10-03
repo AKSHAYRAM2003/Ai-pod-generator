@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function MainContent() {
   const featuredPodcasts = [
     {
@@ -105,6 +107,13 @@ export default function MainContent() {
 
   return (
     <main className="flex-1 bg-black p-4 sm:p-6 lg:p-8 overflow-y-auto">
+      {/* Navigation Header */}
+      {/* <div className="flex justify-between items-center mb-6 sm:mb-8">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-xl font-bold text-white">🎧 AiPod</h1>
+        </div>
+      </div> */}
+
       {/* Welcome Section */}
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">

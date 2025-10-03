@@ -1,12 +1,26 @@
 'use client';
 
-import { Search, Bell } from 'lucide-react';
+import { Search, Bell, User } from 'lucide-react';
+import Link from 'next/link';
+import { useUser } from '@/contexts/UserContext';
+import { useRouter } from 'next/navigation';
 
 interface TopNavbarProps {
   onMenuClick?: () => void;
 }
 
 export default function TopNavbar({ onMenuClick }: TopNavbarProps) {
+  const { user, isAuthenticated } = useUser();
+  const router = useRouter();
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  };
+
+  const handleProfileClick = () => {
+    router.push('/profile');
+  };
+
   return (
     <header className="bg-black px-4 sm:px-6 lg:px-8 py-3 flex-shrink-0 ">
       <div className="flex items-center justify-between gap-4">
@@ -27,20 +41,40 @@ export default function TopNavbar({ onMenuClick }: TopNavbarProps) {
           </div>
         </div>
 
-        {/* Right Side - Bell Icon and Auth Buttons */}
+        {/* Right Side - Conditional Content */}
         <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-          <button className="p-2 rounded-lg hover:bg-gray-800 transition-colors">
-            <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-          </button>
-          
-          <div className="flex items-center space-x-1 sm:space-x-2">
-            <button className="px-2 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base text-white hover:text-gray-300 transition-colors">
-              Login
-            </button>
-            <button className="px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-white text-black rounded-full font-medium hover:bg-gray-200 transition-colors">
-              Sign Up
-            </button>
-          </div>
+          {isAuthenticated ? (
+            <>
+              {/* Bell Icon */}
+              <button className="p-2 rounded-lg hover:bg-gray-800 transition-colors">
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </button>
+              
+              {/* Profile Avatar */}
+              <button 
+                onClick={handleProfileClick}
+                className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-green-500/20"
+              >
+                {user ? getInitials(user.first_name, user.last_name) : <User className="w-4 h-4" />}
+              </button>
+            </>
+          ) : (
+            /* Auth Buttons for Non-authenticated Users */
+            <div className="flex items-center space-x-1 sm:space-x-2">
+              <Link 
+                href="/signin"
+                className="px-2 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base text-white hover:text-gray-300 transition-colors"
+              >
+                Login
+              </Link>
+              <Link 
+                href="/signup"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base bg-white text-black rounded-full font-medium hover:bg-gray-200 transition-colors"
+              >
+                Sign Up
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </header>

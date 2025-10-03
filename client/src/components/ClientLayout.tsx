@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import TopNavbar from './TopNavbar';
 import MediaController from './MediaController';
+import { UserProvider } from '@/contexts/UserContext';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -11,8 +13,19 @@ interface ClientLayoutProps {
 
 export default function ClientLayout({ children }: ClientLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true); // Default to open on desktop
+  const pathname = usePathname();
+  
+  // Check if current page is an auth page or standalone page
+  const isAuthPage = pathname === '/signup' || pathname === '/signin';
+  const isStandalonePage = pathname === '/profile';
+  
+  // For auth pages and standalone pages, render children without layout components but with UserProvider
+  if (isAuthPage || isStandalonePage) {
+    return <UserProvider>{children}</UserProvider>;
+  }
 
   return (
+    <UserProvider>
     <div className="h-screen flex overflow-hidden bg-black">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
@@ -37,5 +50,6 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
         </div>
       </div>
     </div>
+    </UserProvider>
   );
 }
