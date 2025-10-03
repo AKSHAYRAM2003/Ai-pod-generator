@@ -5,15 +5,15 @@ import { SignInPage } from "../../components/ui/sign-in";
 export default function SignIn() {
   const testimonials = [
     {
-      avatarSrc: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-      name: "Alex Chen",
-      handle: "@alexchen",
+      avatarSrc: "https://i.pinimg.com/1200x/88/c1/2c/88c12c0d8a371e1521fe89609d6785db.jpg",
+      name: "Andrew",
+      handle: "@andrew",
       text: "AI Pod Generator transformed how I create content. Amazing results!"
     },
     {
-      avatarSrc: "https://images.unsplash.com/photo-1494790108755-2616b292b6cd?w=100&h=100&fit=crop&crop=face",
-      name: "Sarah Wilson",
-      handle: "@sarahw",
+      avatarSrc: "https://i.pinimg.com/1200x/b3/60/0f/b3600f500d17fd6291bfa8dd16d773be.jpg",
+      name: "williamson",
+      handle: "@williamson",
       text: "The quality of generated podcasts is incredible. Highly recommend!"
     }
   ];

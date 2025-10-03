@@ -28,12 +28,12 @@ const GlassInputWrapper = ({ children, error }: { children: React.ReactNode; err
 );
 
 const TestimonialCard = ({ testimonial, delay }: { testimonial: Testimonial, delay: string }) => (
-  <div className={`animate-testimonial ${delay} flex items-start gap-3 rounded-3xl bg-card/40 dark:bg-zinc-800/40 backdrop-blur-xl border border-white/10 p-5 w-64`}>
-    <img src={testimonial.avatarSrc} className="h-10 w-10 object-cover rounded-2xl" alt="avatar" />
+  <div className={`animate-testimonial ${delay} flex items-start gap-3 rounded-3xl bg-card/40 dark:bg-zinc-800/40 backdrop-blur-xl border border-white/10 p-5 w-full sm:w-64`}>
+    <img src={testimonial.avatarSrc} className="h-10 w-10 object-cover rounded-full border border-gray-400" alt="avatar" />
     <div className="text-sm leading-snug">
-      <p className="flex items-center gap-1 font-medium">{testimonial.name}</p>
-      <p className="text-muted-foreground">{testimonial.handle}</p>
-      <p className="mt-1 text-foreground/80">{testimonial.text}</p>
+      <p className="flex items-center gap-1 font-medium text-white">{testimonial.name}</p>
+      <p className="text-black text-xs font-medium">{testimonial.handle}</p>
+      <p className="mt-1 text-neutral-300">{testimonial.text}</p>
     </div>
   </div>
 );
@@ -61,7 +61,7 @@ const ForgotPasswordPage: React.FC = () => {
       text: "AI Pod Generator transformed how I create content. Amazing results!"
     },
     {
-      avatarSrc: "https://images.unsplash.com/photo-1494790108755-2616b292b6cd?w=100&h=100&fit=crop&crop=face",
+      avatarSrc: "https://images.unsplash.com/photo-1605462863863-10d9e47e15ee?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       name: "Sarah Wilson",
       handle: "@sarahw",
       text: "The quality of generated podcasts is incredible. Highly recommend!"
@@ -244,7 +244,7 @@ const ForgotPasswordPage: React.FC = () => {
           <span className="font-light text-white tracking-tighter">Forgot Password?</span>
         </h1>
       </div>
-      <p className="animate-element animate-delay-200 text-muted-foreground">
+      <p className="animate-element animate-delay-200 text-neutral-500">
         No worries! Enter your email and we'll send you a reset code.
       </p>
 
@@ -295,7 +295,7 @@ const ForgotPasswordPage: React.FC = () => {
       <div className="animate-element animate-delay-500 flex items-center gap-2">
         <button
           onClick={goToSignIn}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-2 text-md text-neutral-400 hover:text-neutral-300 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Sign In
@@ -443,9 +443,9 @@ const ForgotPasswordPage: React.FC = () => {
   );
 
   return (
-    <div className="h-[100dvh] flex flex-col md:flex-row font-geist w-[100dvw]">
+    <div className="h-[100dvh] flex flex-col md:flex-row font-geist w-[100dvw] bg-neutral-900">
       {/* Left column: forgot password form */}
-      <section className="flex-1 flex items-center justify-center p-8">
+      <section className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-neutral-900">
         <div className="w-full max-w-md">
           <div className="flex flex-col gap-6">
             {currentStep.step === 'request' && renderRequestForm()}
@@ -460,7 +460,7 @@ const ForgotPasswordPage: React.FC = () => {
         <div
           className="animate-slide-right animate-delay-300 absolute inset-4 rounded-3xl bg-cover bg-center"
           style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=800&h=1200&fit=crop')`
+            backgroundImage: `url('https://i.pinimg.com/1200x/c3/40/69/c3406930b2541d98307aae2b57d1093a.jpg')`
           }}
         ></div>
         {/* Close button positioned on the right image */}
@@ -470,7 +470,7 @@ const ForgotPasswordPage: React.FC = () => {
         >
           <X className="w-5 h-5 text-white/70 group-hover:text-white transition-colors" />
         </button>
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 px-8 w-full justify-center">
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col sm:flex-row gap-4 px-4 sm:px-8 w-full justify-center max-w-full overflow-x-auto">
           <TestimonialCard testimonial={testimonials[0]} delay="animate-delay-1000" />
           <div className="hidden xl:flex">
             <TestimonialCard testimonial={testimonials[1]} delay="animate-delay-1200" />

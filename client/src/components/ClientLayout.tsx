@@ -17,7 +17,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   const pathname = usePathname();
   
   // Check if current page is an auth page
-  const isAuthPage = pathname === '/signup' || pathname === '/signin';
+  const isAuthPage = pathname === '/signup' || pathname === '/signin' || pathname === '/forgot-password';
   
   // For auth pages, render children without layout components but with providers
   if (isAuthPage) {
