@@ -123,6 +123,7 @@ class UserResponse(BaseModel):
     first_name: str = Field(..., description="User's first name")
     last_name: str = Field(..., description="User's last name")
     username: Optional[str] = Field(None, description="User's username")
+    avatar_url: Optional[str] = Field(None, description="User's avatar URL")
     is_verified: bool = Field(..., description="Whether user's email is verified")
     status: UserStatus = Field(..., description="User's account status")
     created_at: datetime = Field(..., description="Account creation timestamp")
@@ -136,6 +137,7 @@ class UserResponse(BaseModel):
                 "first_name": "John",
                 "last_name": "Doe",
                 "username": "johndoe",
+                "avatar_url": "https://example.com/avatar.jpg",
                 "is_verified": True,
                 "status": "active",
                 "created_at": "2023-01-01T00:00:00Z"

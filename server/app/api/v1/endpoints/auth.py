@@ -515,9 +515,41 @@ async def update_profile(
                         detail="File too large. Maximum size is 5MB."
                     )
                 
-                # Store as base64
-                import base64
-                avatar_url = f"data:{avatar.content_type};base64,{base64.b64encode(content).decode()}"
+                # Compress and resize image
+                try:
+                    from PIL import Image
+                    import io
+                    import base64
+                    
+                    # Open image
+                    img = Image.open(io.BytesIO(content))
+                    
+                    # Convert RGBA to RGB if needed
+                    if img.mode in ('RGBA', 'LA', 'P'):
+                        background = Image.new('RGB', img.size, (255, 255, 255))
+                        if img.mode == 'P':
+                            img = img.convert('RGBA')
+                        background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+                        img = background
+                    
+                    # Resize image to max 400x400 while maintaining aspect ratio
+                    max_size = (400, 400)
+                    img.thumbnail(max_size, Image.Resampling.LANCZOS)
+                    
+                    # Save as JPEG with compression
+                    output = io.BytesIO()
+                    img.save(output, format='JPEG', quality=85, optimize=True)
+                    compressed_content = output.getvalue()
+                    
+                    # Encode as base64
+                    avatar_url = f"data:image/jpeg;base64,{base64.b64encode(compressed_content).decode()}"
+                    
+                except Exception as e:
+                    logger.error(f"Image processing error: {e}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Failed to process image. Please try a different image."
+                    )
         
         ip_address, user_agent = get_client_info(request)
         

@@ -85,8 +85,16 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const updateUser = (userData: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...userData };
+      console.log('🔄 UserContext: Updating user', {
+        before: user,
+        updates: userData,
+        after: updatedUser
+      });
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      console.log('✅ UserContext: User updated successfully');
+    } else {
+      console.warn('⚠️ UserContext: Cannot update user - no user logged in');
     }
   };
 

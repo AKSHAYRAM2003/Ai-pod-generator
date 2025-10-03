@@ -175,7 +175,16 @@ const SignUpPage: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.detail || 'Verification failed');
+        // Handle error response - extract the actual error message
+        if (typeof data.detail === 'object' && data.detail !== null) {
+          // Backend returns {detail: {detail: "message", error_code: "CODE"}}
+          setError(data.detail.detail || 'Verification failed');
+        } else if (typeof data.detail === 'string') {
+          // Backend returns {detail: "message"}
+          setError(data.detail);
+        } else {
+          setError(data.message || 'Verification failed. Please check your code and try again.');
+        }
         return;
       }
 
@@ -221,6 +230,7 @@ const SignUpPage: React.FC = () => {
   const resendCode = async () => {
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/resend-verification`, {
@@ -231,13 +241,21 @@ const SignUpPage: React.FC = () => {
         body: JSON.stringify({ email: currentStep.email }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         setError(''); // Clear any previous errors
         setSuccess('Verification code resent successfully!');
         setTimeout(() => setSuccess(''), 3000);
       } else {
-        const data = await response.json();
-        setError(data.detail || 'Failed to resend code');
+        // Handle error response - extract the actual error message
+        if (typeof data.detail === 'object' && data.detail !== null) {
+          setError(data.detail.detail || 'Failed to resend code');
+        } else if (typeof data.detail === 'string') {
+          setError(data.detail);
+        } else {
+          setError(data.message || 'Failed to resend code');
+        }
       }
     } catch (err) {
       setError('Failed to resend code. Please try again.');
@@ -427,6 +445,13 @@ const SignUpPage: React.FC = () => {
         <div className="animate-element animate-delay-250 flex items-center gap-2 p-4 rounded-2xl bg-red-500/10 border border-red-400/30 text-red-400">
           <AlertCircle className="w-5 h-5" />
           <span className="text-sm">{error}</span>
+        </div>
+      )}
+
+      {success && (
+        <div className="animate-element animate-delay-250 flex items-center gap-2 p-4 rounded-2xl bg-green-500/10 border border-green-400/30 text-green-400">
+          <CheckCircle className="w-5 h-5" />
+          <span className="text-sm">{success}</span>
         </div>
       )}
 

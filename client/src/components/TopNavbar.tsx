@@ -25,7 +25,7 @@ export default function TopNavbar({ onMenuClick }: TopNavbarProps) {
       sessionStatus: status,
       hasContextUser: !!contextUser,
       contextAuth,
-      sessionUser: session?.user,
+      sessionUserData: (session as any)?.userData,
       contextUserData: contextUser
     });
 
@@ -38,21 +38,26 @@ export default function TopNavbar({ onMenuClick }: TopNavbarProps) {
         // Store token in localStorage for API calls
         localStorage.setItem('token', backendToken);
         
-        // Sync with UserContext if not already synced
-        if (!contextUser || contextUser.id !== userData.id) {
-          login(userData);
-        }
+        // ALWAYS sync with UserContext to ensure latest data (including avatar)
+        login(userData);
         
         setDisplayUser(userData);
         setIsAuth(true);
-        console.log('✅ TopNavbar: Authenticated via NextAuth session', userData);
+        console.log('✅ TopNavbar: Authenticated via NextAuth session', {
+          email: userData.email,
+          hasAvatar: !!userData.avatar_url,
+          avatarUrl: userData.avatar_url
+        });
       }
     } 
     // Check if user is authenticated via context (email/password login)
     else if (contextUser && contextAuth) {
       setDisplayUser(contextUser);
       setIsAuth(true);
-      console.log('✅ TopNavbar: Authenticated via UserContext', contextUser);
+      console.log('✅ TopNavbar: Authenticated via UserContext', {
+        email: contextUser.email,
+        hasAvatar: !!contextUser.avatar_url
+      });
     } 
     // No authentication - show login/signup buttons
     else {
@@ -108,9 +113,14 @@ export default function TopNavbar({ onMenuClick }: TopNavbarProps) {
               >
                 {displayUser?.avatar_url ? (
                   <img 
+                    key={displayUser.avatar_url}
                     src={displayUser.avatar_url} 
                     alt={`${displayUser.first_name || ''} ${displayUser.last_name || ''}`}
                     className="w-full h-full object-cover rounded-full"
+                    onError={(e) => {
+                      console.error('❌ Avatar failed to load:', displayUser.avatar_url);
+                      e.currentTarget.style.display = 'none';
+                    }}
                   />
                 ) : displayUser ? (
                   getInitials(displayUser.first_name || '', displayUser.last_name || '')

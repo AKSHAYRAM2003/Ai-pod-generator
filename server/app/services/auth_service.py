@@ -510,7 +510,8 @@ class AuthService:
                 user = existing_user
                 if not user.google_id:
                     user.google_id = oauth_data.google_id
-                if oauth_data.avatar_url and not user.avatar_url:
+                # Always update avatar from Google to get latest profile picture
+                if oauth_data.avatar_url:
                     user.avatar_url = oauth_data.avatar_url
                 
                 # Verify email if not already verified
@@ -573,6 +574,7 @@ class AuthService:
                     first_name=user.first_name,
                     last_name=user.last_name,
                     username=user.username,
+                    avatar_url=user.avatar_url,
                     is_verified=user.is_email_verified,
                     status=user.status,
                     created_at=user.created_at
@@ -825,10 +827,7 @@ class AuthService:
             
             user.updated_at = datetime.utcnow()
             
-            await self.db.commit()
-            await self.db.refresh(user)
-            
-            # Log audit event
+            # Log audit event before commit
             await self._log_audit_event(
                 user.id,
                 AuditLogAction.PROFILE_UPDATED,
@@ -836,6 +835,9 @@ class AuthService:
                 ip_address,
                 user_agent
             )
+            
+            await self.db.commit()
+            await self.db.refresh(user)
             
             return user
             

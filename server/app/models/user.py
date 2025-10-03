@@ -33,7 +33,7 @@ class User(Base):
     first_name = Column(String(50), nullable=False)
     last_name = Column(String(50), nullable=False)
     username = Column(String(30), unique=True, index=True, nullable=True)
-    avatar_url = Column(String(500), nullable=True)
+    avatar_url = Column(Text, nullable=True)  # Changed from String(500) to Text for base64 images
     bio = Column(Text, nullable=True)
     
     # Account status and verification

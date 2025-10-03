@@ -109,6 +109,20 @@ class SecurityUtils:
             raise AuthenticationException(f"Invalid token: {str(e)}")
     
     @staticmethod
+    def get_user_id_from_token(token: str) -> int:
+        """Extract user ID from JWT token"""
+        try:
+            payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+            user_id = payload.get("sub")
+            if user_id is None:
+                raise AuthenticationException("Invalid token: missing user ID")
+            return int(user_id)
+        except JWTError as e:
+            raise AuthenticationException(f"Invalid token: {str(e)}")
+        except ValueError:
+            raise AuthenticationException("Invalid token: invalid user ID format")
+    
+    @staticmethod
     def generate_random_token(length: int = 32) -> str:
         """Generate a random token for email verification, password reset, etc."""
         alphabet = string.ascii_letters + string.digits

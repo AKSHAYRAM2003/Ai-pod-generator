@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, User, Mail, Save } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, User, Mail, Save, Camera, Upload } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { useSession, signOut } from 'next-auth/react';
 
@@ -13,11 +13,14 @@ interface ProfilePopupProps {
 const ProfilePopup: React.FC<ProfilePopupProps> = ({ isOpen, onClose }) => {
   const { user, updateUser, logout } = useUser();
   const { data: session } = useSession();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
     email: user?.email || ''
   });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatar_url || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -30,6 +33,7 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({ isOpen, onClose }) => {
         last_name: user.last_name || '',
         email: user.email || ''
       });
+      setAvatarPreview(user.avatar_url || null);
     }
   }, [user]);
 
@@ -40,6 +44,37 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({ isOpen, onClose }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
     setError('');
     setSuccess('');
+  };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
+      }
+
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size must be less than 5MB');
+        return;
+      }
+
+      setAvatarFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setError('');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,13 +96,22 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({ isOpen, onClose }) => {
         return;
       }
 
+      // Create FormData for multipart/form-data
+      const formDataToSend = new FormData();
+      formDataToSend.append('first_name', formData.first_name);
+      formDataToSend.append('last_name', formData.last_name);
+      
+      if (avatarFile) {
+        formDataToSend.append('avatar', avatarFile);
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/profile`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
+          // Don't set Content-Type - let browser set it with boundary for FormData
         },
-        body: JSON.stringify(formData),
+        body: formDataToSend,
       });
 
       const data = await response.json();
@@ -77,14 +121,30 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({ isOpen, onClose }) => {
         return;
       }
 
-      // Update user context with new data
+      // Update user context with new data (this triggers re-render in TopNavbar)
+      console.log('✅ Profile updated, updating context with:', data);
       updateUser(data);
-      setSuccess('Profile updated successfully!');
       
-      // Close popup after success
+      // Update local state to reflect changes immediately in the popup
+      setFormData({
+        first_name: data.first_name || '',
+        last_name: data.last_name || '',
+        email: data.email || ''
+      });
+      
+      // Update avatar preview with server response (the compressed/processed image)
+      if (data.avatar_url) {
+        setAvatarPreview(data.avatar_url);
+        console.log('✅ Avatar preview updated with server response');
+      }
+      
+      setSuccess('Profile updated successfully!');
+      setAvatarFile(null); // Clear file after successful upload
+      
+      // Don't close immediately - let user see the updated avatar
       setTimeout(() => {
         onClose();
-      }, 1500);
+      }, 2000); // Increased from 1500ms to 2000ms
     } catch (err) {
       setError('Network error. Please try again.');
     } finally {
@@ -93,14 +153,25 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({ isOpen, onClose }) => {
   };
 
   const handleLogout = async () => {
+    // Close popup first
+    onClose();
+    
     // Check if user is logged in via OAuth
     if (session) {
-      await signOut({ callbackUrl: '/' });
+      // Clear user context first
+      logout();
+      // Then sign out from NextAuth (this will redirect)
+      await signOut({ callbackUrl: '/', redirect: true });
     } else {
+      // Regular email/password logout
       logout();
       window.location.href = '/';
     }
-    onClose();
+  };
+
+  const getInitials = (firstName: string, lastName: string) => {
+    if (!firstName || !lastName) return 'U';
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
   return (
@@ -130,6 +201,62 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({ isOpen, onClose }) => {
               {success}
             </div>
           )}
+
+          {/* Avatar Upload Section */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Profile Picture
+            </label>
+            <div className="flex items-center gap-4">
+              {/* Avatar Preview */}
+              <div className="relative">
+                <div 
+                  onClick={handleAvatarClick}
+                  className="w-20 h-20 rounded-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center text-white text-2xl font-medium overflow-hidden cursor-pointer hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg"
+                >
+                  {avatarPreview ? (
+                    <img 
+                      key={avatarPreview}
+                      src={avatarPreview} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    getInitials(formData.first_name, formData.last_name)
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAvatarClick}
+                  className="absolute bottom-0 right-0 p-1.5 bg-green-600 rounded-full text-white hover:bg-green-700 transition-colors shadow-lg"
+                >
+                  <Camera className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* Upload Button */}
+              <div className="flex-1">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={handleAvatarClick}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-neutral-600 text-gray-300 rounded-lg hover:bg-neutral-800 transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                  {avatarFile ? 'Change Photo' : 'Upload Photo'}
+                </button>
+                <p className="text-xs text-gray-400 mt-1">
+                  JPG, PNG or GIF. Max 5MB
+                </p>
+              </div>
+            </div>
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
