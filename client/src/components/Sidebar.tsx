@@ -119,6 +119,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         {/* Start Generate Button */}
         <div className="absolute bottom-6 left-0 right-0 px-3">
           <button 
+            onClick={() => router.push('/podcast-generation')}
             className={`w-full bg-white text-black font-semibold py-3 rounded-full hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center ${
               !isOpen ? 'px-2' : 'px-4'
             }`}
