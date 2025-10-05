@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # Redis Configuration
     REDIS_URL: str = "redis://localhost:6379/0"
     
+    # Google Gemini API
+    GEMINI_API_KEY: str
+    
     # OAuth Configuration
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
@@ -46,6 +49,11 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE: int = 10485760  # 10MB
     UPLOAD_FOLDER: str = "uploads/"
     
+    # Storage Configuration
+    STORAGE_TYPE: str = "local"  # "local" or "gcs"
+    GCS_BUCKET_NAME: Optional[str] = None
+    STORAGE_PATH: str = "storage/podcasts"
+    
     # CORS Configuration
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
     
@@ -57,6 +65,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"  # Ignore extra fields from .env
 
 
 # Create settings instance
