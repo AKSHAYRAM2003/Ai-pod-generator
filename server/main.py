@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 import logging
 from contextlib import asynccontextmanager
+import os
 
 from app.core.config import settings
 from app.core.database import engine, Base
@@ -41,14 +43,41 @@ app = FastAPI(
     openapi_url="/api/openapi.json"
 )
 
-# Configure CORS
+# Configure CORS - Must be added before routes
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Explicitly set origins
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
+
+
+# Add custom middleware to log requests and add CORS headers
+@app.middleware("http")
+async def add_cors_headers(request: Request, call_next):
+    """Add CORS headers to all responses"""
+    origin = request.headers.get("origin")
+    
+    # Handle preflight requests
+    if request.method == "OPTIONS":
+        response = JSONResponse(content={"ok": True})
+        response.headers["Access-Control-Allow-Origin"] = origin or "http://localhost:3000"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+    
+    # Process request
+    response = await call_next(request)
+    
+    # Add CORS headers to response
+    response.headers["Access-Control-Allow-Origin"] = origin or "http://localhost:3000"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    
+    return response
 
 
 @app.exception_handler(AppException)
@@ -78,6 +107,15 @@ async def health_check():
 
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
+
+
+# Mount static files for serving audio files
+storage_path = os.path.join(os.path.dirname(__file__), "storage")
+if os.path.exists(storage_path):
+    app.mount("/storage", StaticFiles(directory=storage_path), name="storage")
+    logger.info(f"Mounted storage directory: {storage_path}")
+else:
+    logger.warning(f"Storage directory not found: {storage_path}")
 
 
 if __name__ == "__main__":
