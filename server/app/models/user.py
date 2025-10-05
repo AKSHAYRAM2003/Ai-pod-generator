@@ -62,6 +62,7 @@ class User(Base):
     password_reset_tokens = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
     user_preferences = relationship("UserPreferences", back_populates="user", uselist=False, cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
+    podcasts = relationship("Podcast", back_populates="user", cascade="all, delete-orphan")
     
     @hybrid_property
     def full_name(self) -> str:
