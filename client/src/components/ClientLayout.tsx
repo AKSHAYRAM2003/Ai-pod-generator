@@ -7,6 +7,7 @@ import Sidebar from './Sidebar';
 import TopNavbar from './TopNavbar';
 import MediaController from './MediaController';
 import { UserProvider } from '@/contexts/UserContext';
+import { AudioPlayerProvider } from '@/contexts/AudioPlayerContext';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -31,6 +32,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   return (
     <SessionProvider>
       <UserProvider>
+        <AudioPlayerProvider>
     <div className="h-screen flex overflow-hidden bg-black">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
@@ -47,7 +49,6 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
           <div className="flex-1 overflow-auto">
             {children}
           </div>
-          
           {/* Media Controller - Within main content area */}
           <div className="flex-shrink-0">
             <MediaController />
@@ -55,6 +56,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
         </div>
       </div>
     </div>
+    </AudioPlayerProvider>
     </UserProvider>
     </SessionProvider>
   );

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, Play, Loader2, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
 import ProtectedRouteWrapper from '@/components/ProtectedRouteWrapper';
-import { useAudioPlayer } from '@/contexts/AudioPlayerContext';
 
 interface Podcast {
   id: string;
@@ -13,13 +12,11 @@ interface Podcast {
   speaker_mode: string;
   voice_type?: string;
   conversation_style?: string;
-  status: 'draft' | 'generating' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed';
   is_public: boolean;
   audio_url?: string;
   error_message?: string;
   created_at: string;
-  progress?: number;
-  stage?: string;
   category?: {
     id: string;
     name: string;
@@ -29,12 +26,10 @@ interface Podcast {
 
 export default function MyPods() {
   const router = useRouter();
-  const { playPodcast, currentPodcast, isPlaying } = useAudioPlayer();
   const [podcasts, setPodcasts] = useState<Podcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [pollingIds, setPollingIds] = useState<Set<string>>(new Set());
-  const [justCompletedIds, setJustCompletedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchMyPodcasts();
@@ -62,14 +57,12 @@ export default function MyPods() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('[MyPods] Fetched podcasts:', data.podcasts);
         setPodcasts(data.podcasts);
         
-        // Start polling for processing podcasts (including draft and generating)
+        // Start polling for processing podcasts
         const processingPods = data.podcasts.filter(
-          (p: Podcast) => p.status === 'draft' || p.status === 'generating'
+          (p: Podcast) => p.status === 'pending' || p.status === 'processing'
         );
-        console.log('[MyPods] Starting polling for:', processingPods.map((p: Podcast) => ({ id: p.id, status: p.status })));
         setPollingIds(new Set(processingPods.map((p: Podcast) => p.id)));
       } else if (response.status === 401) {
         router.push('/signin');
@@ -102,43 +95,16 @@ export default function MyPods() {
 
         if (response.ok) {
           const statusData = await response.json();
-          console.log(`[MyPods] Status update for ${podcastId}:`, statusData);
           
-          // Check if podcast just completed
-          const wasGenerating = podcasts.find(p => p.id === podcastId)?.status === 'generating';
-          const isNowCompleted = statusData.status === 'completed';
-          
-          // Update podcast in the list with progress and stage
+          // Update podcast in the list
           setPodcasts(prev => prev.map(p => 
             p.id === podcastId 
-              ? { 
-                  ...p, 
-                  status: statusData.status, 
-                  audio_url: statusData.audio_url, 
-                  error_message: statusData.error_message,
-                  progress: statusData.progress,
-                  stage: statusData.stage
-                }
+              ? { ...p, status: statusData.status, audio_url: statusData.audio_url, error_message: statusData.error_message }
               : p
           ));
 
           // Stop polling if completed or failed
           if (statusData.status === 'completed' || statusData.status === 'failed') {
-            console.log(`[MyPods] Stopping poll for ${podcastId} - status: ${statusData.status}, audio_url: ${statusData.audio_url}`);
-            
-            // Mark as just completed for animation
-            if (wasGenerating && isNowCompleted) {
-              setJustCompletedIds(prev => new Set(prev).add(podcastId));
-              // Remove from just completed after 10 seconds
-              setTimeout(() => {
-                setJustCompletedIds(prev => {
-                  const newSet = new Set(prev);
-                  newSet.delete(podcastId);
-                  return newSet;
-                });
-              }, 10000);
-            }
-            
             setPollingIds(prev => {
               const newSet = new Set(prev);
               newSet.delete(podcastId);
@@ -206,18 +172,18 @@ export default function MyPods() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'draft':
+      case 'pending':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-500/10 text-gray-400 border border-gray-500/20 rounded text-xs">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            Queued
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded text-xs">
+            <Clock className="w-3 h-3" />
+            Pending
           </span>
         );
-      case 'generating':
+      case 'processing':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded text-xs">
             <Loader2 className="w-3 h-3 animate-spin" />
-            Generating
+            Processing
           </span>
         );
       case 'completed':
@@ -348,36 +314,6 @@ export default function MyPods() {
                       </div>
                     )}
 
-                    {/* Progress Bar for Generating Podcasts */}
-                    {(podcast.status === 'draft' || podcast.status === 'generating') && (
-                      <div className="mb-3 space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-400">
-                            {podcast.stage || 'Preparing...'}
-                          </span>
-                          <span className="text-white font-semibold">
-                            {podcast.progress || 0}%
-                          </span>
-                        </div>
-                        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500 ease-out"
-                            style={{ width: `${podcast.progress || 0}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Success Message when Completed */}
-                    {podcast.status === 'completed' && podcast.audio_url && justCompletedIds.has(podcast.id) && (
-                      <div className="mb-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg animate-pulse">
-                        <p className="text-green-400 text-sm font-semibold flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4" />
-                          Your podcast generated successfully! Ready to play.
-                        </p>
-                      </div>
-                    )}
-
                     {/* Actions */}
                     <div className="flex flex-wrap items-center gap-3 mt-3">
                       <span className="text-xs text-gray-500">{formatDate(podcast.created_at)}</span>
@@ -385,15 +321,10 @@ export default function MyPods() {
                       {podcast.status === 'completed' && podcast.audio_url && (
                         <>
                           <button
-                            onClick={() => playPodcast(podcast)}
-                            className={`text-sm px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 ${
-                              currentPodcast?.id === podcast.id && isPlaying
-                                ? 'bg-white text-black'
-                                : 'bg-white/10 text-white hover:bg-white/20'
-                            }`}
+                            className="text-sm px-3 py-1.5 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors flex items-center gap-1"
                           >
                             <Play className="w-3 h-3" />
-                            {currentPodcast?.id === podcast.id && isPlaying ? 'Playing' : 'Play'}
+                            Play
                           </button>
                           
                           <button
@@ -407,6 +338,10 @@ export default function MyPods() {
                             {podcast.is_public ? 'Public' : 'Make Public'}
                           </button>
                         </>
+                      )}
+
+                      {(podcast.status === 'pending' || podcast.status === 'processing') && (
+                        <span className="text-sm text-gray-400">Generation in progress...</span>
                       )}
 
                       <button
