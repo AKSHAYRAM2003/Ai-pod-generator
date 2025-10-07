@@ -1,1 +1,33 @@
-.env/
+# Environment files
+.env
+.env.*
+
+# Service account keys (IMPORTANT: Never commit these!)
+secreate-key/
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!components.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Storage
+storage/
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

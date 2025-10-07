@@ -57,6 +57,34 @@ class StorageService:
             logger.error(f"Error saving audio: {e}")
             raise
     
+    async def save_thumbnail(
+        self,
+        image_data: bytes,
+        podcast_id: str,
+        user_id: int,
+        format: str = "png"
+    ) -> str:
+        """
+        Save thumbnail image and return URL
+        
+        Args:
+            image_data: Image file bytes
+            podcast_id: Podcast UUID
+            user_id: User ID
+            format: Image format (default: png)
+            
+        Returns:
+            URL to access the thumbnail image
+        """
+        try:
+            if self.mode == "local":
+                return await self._save_thumbnail_local(image_data, podcast_id, user_id, format)
+            else:
+                return await self._save_thumbnail_gcs(image_data, podcast_id, user_id, format)
+        except Exception as e:
+            logger.error(f"Error saving thumbnail: {e}")
+            raise
+    
     async def _save_local(
         self,
         audio_data: bytes,
@@ -84,6 +112,33 @@ class StorageService:
             logger.error(f"Error saving to local storage: {e}")
             raise
     
+    async def _save_thumbnail_local(
+        self,
+        image_data: bytes,
+        podcast_id: str,
+        user_id: int,
+        format: str
+    ) -> str:
+        """Save thumbnail to local filesystem"""
+        try:
+            # Create user directory
+            user_dir = Path(LOCAL_STORAGE_PATH) / f"user_{user_id}" / str(podcast_id)
+            user_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Save file
+            file_path = user_dir / f"thumbnail.{format}"
+            with open(file_path, 'wb') as f:
+                f.write(image_data)
+            
+            # Return relative URL (will be served by FastAPI static files)
+            url = f"/storage/podcasts/user_{user_id}/{podcast_id}/thumbnail.{format}"
+            logger.info(f"Saved thumbnail locally: {url}")
+            return url
+            
+        except Exception as e:
+            logger.error(f"Error saving thumbnail to local storage: {e}")
+            raise
+    
     async def _save_gcs(
         self,
         audio_data: bytes,
@@ -107,6 +162,24 @@ class StorageService:
             
         except Exception as e:
             logger.error(f"Error saving to GCS: {e}")
+            raise
+    
+    async def _save_thumbnail_gcs(
+        self,
+        image_data: bytes,
+        podcast_id: str,
+        user_id: int,
+        format: str
+    ) -> str:
+        """Save thumbnail to Google Cloud Storage"""
+        try:
+            # TODO: Implement GCS upload for production
+            # For now, fall back to local storage
+            logger.warning("GCS thumbnail upload not implemented, falling back to local storage")
+            return await self._save_thumbnail_local(image_data, podcast_id, user_id, format)
+            
+        except Exception as e:
+            logger.error(f"Error saving thumbnail to GCS: {e}")
             raise
     
     async def delete_audio(self, audio_url: str) -> bool:

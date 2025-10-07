@@ -9,6 +9,11 @@ from google.genai import types
 # Gemini API Configuration
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyDzhIpsf8RZTUnIpH4Z00dG2ltUiULYC2A")
 
+# GCP Configuration for Vertex AI (Imagen)
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "sylvan-box-474408-r3")
+GCP_LOCATION = os.getenv("GCP_LOCATION", "us-central1")
+GCP_CREDENTIALS_PATH = os.getenv("GCP_CREDENTIALS_PATH")
+
 # Models
 TEXT_MODEL = "models/gemini-2.0-flash-exp"  # For script generation
 AUDIO_MODEL = "models/gemini-2.0-flash-exp"  # For audio synthesis with native audio
