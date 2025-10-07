@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Clock, Play, Loader2, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Play, Pause, MoreVertical, Trash2, Globe, Share2, CheckCircle, Loader2, AlertCircle, Lock, LockOpen } from 'lucide-react';
 import ProtectedRouteWrapper from '@/components/ProtectedRouteWrapper';
 import { useAudioPlayer } from '@/contexts/AudioPlayerContext';
 
@@ -16,6 +16,7 @@ interface Podcast {
   status: 'draft' | 'generating' | 'completed' | 'failed';
   is_public: boolean;
   audio_url?: string;
+  thumbnail_url?: string;
   error_message?: string;
   created_at: string;
   progress?: number;
@@ -29,12 +30,13 @@ interface Podcast {
 
 export default function MyPods() {
   const router = useRouter();
-  const { playPodcast, currentPodcast, isPlaying } = useAudioPlayer();
+  const { playPodcast, currentPodcast, isPlaying, togglePlayPause } = useAudioPlayer();
   const [podcasts, setPodcasts] = useState<Podcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [pollingIds, setPollingIds] = useState<Set<string>>(new Set());
   const [justCompletedIds, setJustCompletedIds] = useState<Set<string>>(new Set());
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMyPodcasts();
@@ -239,6 +241,275 @@ export default function MyPods() {
     }
   };
 
+  const handleShare = async (podcast: Podcast) => {
+    if (navigator.share && podcast.audio_url) {
+      try {
+        await navigator.share({
+          title: podcast.topic,
+          text: `Check out this AI-generated podcast: ${podcast.topic}`,
+          url: window.location.origin + '/podcast/' + podcast.id,
+        });
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
+    } else {
+      // Fallback: copy link to clipboard
+      const url = window.location.origin + '/podcast/' + podcast.id;
+      navigator.clipboard.writeText(url);
+      alert('Link copied to clipboard!');
+    }
+    setActiveMenu(null);
+  };
+
+  const toggleMenu = (podcastId: string) => {
+    setActiveMenu(activeMenu === podcastId ? null : podcastId);
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setActiveMenu(null);
+    if (activeMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [activeMenu]);
+
+  // Group podcasts by status and category
+  const generatingPodcasts = podcasts.filter(p => p.status === 'draft' || p.status === 'generating');
+  const completedPodcasts = podcasts.filter(p => p.status === 'completed');
+  const failedPodcasts = podcasts.filter(p => p.status === 'failed');
+  
+  // Get recent podcasts (3-4 most recent completed)
+  const recentPodcasts = [...completedPodcasts]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 4);
+  
+  // Group completed podcasts by category
+  const podcastsByCategory = completedPodcasts.reduce((acc, podcast) => {
+    const categoryName = podcast.category?.name || 'Uncategorized';
+    if (!acc[categoryName]) {
+      acc[categoryName] = [];
+    }
+    acc[categoryName].push(podcast);
+    return acc;
+  }, {} as Record<string, Podcast[]>);
+
+  // Render a podcast card
+  const renderPodcastCard = (podcast: Podcast, showProgress = false) => {
+    const isCurrentlyPlaying = currentPodcast?.id === podcast.id && isPlaying;
+    const isGenerating = podcast.status === 'draft' || podcast.status === 'generating';
+
+    return (
+      <div
+        key={podcast.id}
+        className={`backdrop-blur-md bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-all duration-300 group relative overflow-hidden
+          ${isGenerating 
+            ? 'border-2 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 bg-[length:200%_200%] animate-shimmer' 
+            : 'border border-white/10 hover:border-white/20'
+          }
+          ${justCompletedIds.has(podcast.id) ? 'ring-2 ring-green-500/50 animate-pulse' : ''}`}
+      >
+        <div className="flex items-start gap-4">
+          {/* Thumbnail */}
+          <div className={`w-20 h-20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden
+            ${isGenerating 
+              ? 'bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30 animate-pulse' 
+              : 'bg-gradient-to-br from-white/10 to-white/5 border border-white/10'
+            }`}
+          >
+            {isGenerating ? (
+              <Loader2 className="w-8 h-8 text-white animate-spin" />
+            ) : podcast.thumbnail_url ? (
+              <img 
+                src={`http://localhost:8000${podcast.thumbnail_url}`} 
+                alt={podcast.topic}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-3xl">{podcast.category?.icon || '🎙️'}</span>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            {/* Title and Menu */}
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <h3 className="text-white font-semibold text-base line-clamp-2 flex-1">
+                {podcast.topic}
+              </h3>
+              
+              {/* Three-dot menu for completed podcasts */}
+              {podcast.status === 'completed' && (
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleMenu(podcast.id);
+                    }}
+                    className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
+                  >
+                    <MoreVertical className="w-4 h-4 text-gray-400" />
+                  </button>
+                  
+                  {activeMenu === podcast.id && (
+                    <div 
+                      className="absolute right-0 top-8 bg-gray-900 border border-white/20 rounded-lg shadow-xl z-10 min-w-[160px]"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => {
+                          handlePublishToggle(podcast.id, podcast.is_public);
+                          setActiveMenu(null);
+                        }}
+                        className="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/10 flex items-center gap-2 first:rounded-t-lg"
+                      >
+                        {podcast.is_public ? (
+                          <>
+                            <Lock className="w-4 h-4" />
+                            Make Private
+                          </>
+                        ) : (
+                          <>
+                            <LockOpen className="w-4 h-4" />
+                            Make Public
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleShare(podcast)}
+                        className="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/10 flex items-center gap-2"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        Share
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleDelete(podcast.id);
+                          setActiveMenu(null);
+                        }}
+                        className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2 last:rounded-b-lg border-t border-white/10"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Metadata */}
+            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400 mb-2">
+              <span>{podcast.duration} min</span>
+              <span>•</span>
+              <span className="capitalize">
+                {podcast.speaker_mode === 'single' ? 'Solo' : 'Conversation'}
+              </span>
+              {podcast.conversation_style && (
+                <>
+                  <span>•</span>
+                  <span className="capitalize">{podcast.conversation_style}</span>
+                </>
+              )}
+            </div>
+
+            {/* Progress Bar for Generating */}
+            {showProgress && isGenerating && (
+              <div className="mb-3 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-blue-400 font-medium">
+                    {podcast.stage || 'Preparing...'}
+                  </span>
+                  <span className="text-white font-semibold">
+                    {podcast.progress || 0}%
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-[length:200%_200%] animate-shimmer transition-all duration-500 ease-out"
+                    style={{ width: `${podcast.progress || 0}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {podcast.status === 'failed' && podcast.error_message && (
+              <div className="mb-2 p-2 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-400">
+                {podcast.error_message}
+              </div>
+            )}
+
+            {/* Success Message */}
+            {justCompletedIds.has(podcast.id) && (
+              <div className="mb-2 p-2 bg-green-500/10 border border-green-500/20 rounded text-xs text-green-400 flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                Podcast generated successfully!
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 mt-2">
+              {/* Play/Pause Button */}
+              {podcast.status === 'completed' && podcast.audio_url && (
+                <button
+                  onClick={() => {
+                    if (isCurrentlyPlaying) {
+                      togglePlayPause();
+                    } else {
+                      playPodcast(podcast);
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    isCurrentlyPlaying
+                      ? 'bg-white text-black hover:bg-gray-200'
+                      : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
+                  }`}
+                >
+                  {isCurrentlyPlaying ? (
+                    <>
+                      <Pause className="w-3.5 h-3.5" />
+                      Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-3.5 h-3.5" />
+                      Play
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Public Badge */}
+              {podcast.is_public && podcast.status === 'completed' && (
+                <span className="flex items-center gap-1 px-2 py-1 bg-green-500/10 text-green-400 border border-green-500/20 rounded text-xs">
+                  <Globe className="w-3 h-3" />
+                  Public
+                </span>
+              )}
+
+              {/* Date */}
+              <span className="text-xs text-gray-500 ml-auto">
+                {formatDate(podcast.created_at)}
+              </span>
+
+              {/* Delete for failed/generating */}
+              {(podcast.status === 'failed' || isGenerating) && (
+                <button
+                  onClick={() => handleDelete(podcast.id)}
+                  className="p-1.5 text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -267,12 +538,13 @@ export default function MyPods() {
   return (
     <ProtectedRouteWrapper>
       <main className="flex-1 bg-black p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
-            My Pods
+            My Podcasts
           </h1>
           <p className="text-gray-400 text-sm sm:text-base md:text-lg">
-            Your AI-generated podcasts ({podcasts.length} total)
+            Your AI-generated podcasts • {podcasts.length} total
           </p>
         </div>
 
@@ -301,139 +573,95 @@ export default function MyPods() {
           </div>
         )}
 
-        {/* Podcasts Grid */}
-        {podcasts.length > 0 && (
-          <div className="grid grid-cols-1 gap-4">
-            {podcasts.map((podcast) => (
-              <div
-                key={podcast.id}
-                className="backdrop-blur-md bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 group"
-              >
-                <div className="flex items-start gap-4">
-                  {/* Icon/Category */}
-                  <div className="w-16 h-16 bg-gradient-to-br from-white/10 to-white/5 rounded-xl flex items-center justify-center flex-shrink-0 text-3xl border border-white/10">
-                    {podcast.category?.icon || '🎙️'}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex-1">
-                        <h3 className="text-white font-semibold text-lg mb-1 line-clamp-2">
-                          {podcast.topic}
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-400">
-                          {podcast.category && (
-                            <span className="text-gray-300">{podcast.category.name}</span>
-                          )}
-                          <span>•</span>
-                          <span>{podcast.duration} min</span>
-                          <span>•</span>
-                          <span className="capitalize">{podcast.speaker_mode} speaker{podcast.speaker_mode === 'two' ? 's' : ''}</span>
-                          {podcast.conversation_style && (
-                            <>
-                              <span>•</span>
-                              <span className="capitalize">{podcast.conversation_style}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {getStatusBadge(podcast.status)}
-                    </div>
-
-                    {/* Error Message */}
-                    {podcast.status === 'failed' && podcast.error_message && (
-                      <div className="mb-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                        <p className="text-red-400 text-sm">{podcast.error_message}</p>
-                      </div>
-                    )}
-
-                    {/* Progress Bar for Generating Podcasts */}
-                    {(podcast.status === 'draft' || podcast.status === 'generating') && (
-                      <div className="mb-3 space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-400">
-                            {podcast.stage || 'Preparing...'}
-                          </span>
-                          <span className="text-white font-semibold">
-                            {podcast.progress || 0}%
-                          </span>
-                        </div>
-                        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500 ease-out"
-                            style={{ width: `${podcast.progress || 0}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Success Message when Completed */}
-                    {podcast.status === 'completed' && podcast.audio_url && justCompletedIds.has(podcast.id) && (
-                      <div className="mb-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg animate-pulse">
-                        <p className="text-green-400 text-sm font-semibold flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4" />
-                          Your podcast generated successfully! Ready to play.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex flex-wrap items-center gap-3 mt-3">
-                      <span className="text-xs text-gray-500">{formatDate(podcast.created_at)}</span>
-                      
-                      {podcast.status === 'completed' && podcast.audio_url && (
-                        <>
-                          <button
-                            onClick={() => playPodcast(podcast)}
-                            className={`text-sm px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 ${
-                              currentPodcast?.id === podcast.id && isPlaying
-                                ? 'bg-white text-black'
-                                : 'bg-white/10 text-white hover:bg-white/20'
-                            }`}
-                          >
-                            <Play className="w-3 h-3" />
-                            {currentPodcast?.id === podcast.id && isPlaying ? 'Playing' : 'Play'}
-                          </button>
-                          
-                          <button
-                            onClick={() => handlePublishToggle(podcast.id, podcast.is_public)}
-                            className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
-                              podcast.is_public
-                                ? 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20'
-                                : 'bg-white/10 text-white hover:bg-white/20'
-                            }`}
-                          >
-                            {podcast.is_public ? 'Public' : 'Make Public'}
-                          </button>
-                        </>
-                      )}
-
-                      <button
-                        onClick={() => handleDelete(podcast.id)}
-                        className="text-sm px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition-colors ml-auto"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Generating Now Section */}
+        {generatingPodcasts.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                Generating Now
+                <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-sm rounded-full">
+                  {generatingPodcasts.length}
+                </span>
+              </h2>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-4">
+              {generatingPodcasts.map(podcast => renderPodcastCard(podcast, true))}
+            </div>
+          </section>
         )}
 
-        {/* Refresh Button */}
-        {podcasts.length > 0 && (
-          <div className="mt-6 flex justify-center">
-            <button
-              onClick={fetchMyPodcasts}
-              className="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Refresh
-            </button>
-          </div>
+        {/* Failed Podcasts Section */}
+        {failedPodcasts.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                Failed
+                <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-sm rounded-full">
+                  {failedPodcasts.length}
+                </span>
+              </h2>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-4">
+              {failedPodcasts.map(podcast => renderPodcastCard(podcast, false))}
+            </div>
+          </section>
+        )}
+
+        {/* Recent Podcasts Section */}
+        {recentPodcasts.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Recent Podcasts</h2>
+              {completedPodcasts.length > 4 && (
+                <button 
+                  onClick={() => router.push('/mypods?view=all')}
+                  className="text-sm text-gray-400 hover:text-white transition-colors"
+                >
+                  See all
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {recentPodcasts.map(podcast => renderPodcastCard(podcast, false))}
+            </div>
+          </section>
+        )}
+
+        {/* Podcasts by Category */}
+        {Object.keys(podcastsByCategory).length > 0 && (
+          <>
+            {Object.entries(podcastsByCategory).map(([categoryName, categoryPodcasts]) => {
+              // Skip if already shown in recent
+              const uniquePodcasts = categoryPodcasts.filter(
+                p => !recentPodcasts.some(rp => rp.id === p.id)
+              ).slice(0, 4);
+
+              if (uniquePodcasts.length === 0) return null;
+
+              return (
+                <section key={categoryName} className="mb-8">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-white">{categoryName}</h2>
+                    {categoryPodcasts.length > 4 && (
+                      <button 
+                        onClick={() => router.push(`/mypods?category=${categoryName}`)}
+                        className="text-sm text-gray-400 hover:text-white transition-colors"
+                      >
+                        See all
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {uniquePodcasts.map(podcast => renderPodcastCard(podcast, false))}
+                  </div>
+                </section>
+              );
+            })}
+          </>
         )}
       </main>
     </ProtectedRouteWrapper>
