@@ -168,8 +168,18 @@ const MediaController = () => {
         <div className="flex items-center justify-between gap-4">
           {/* Left: Track Info */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-12 h-12 bg-gradient-to-br from-white/10 to-white/5 rounded-lg flex items-center justify-center flex-shrink-0 text-xl border border-white/10">
-              {currentPodcast.category?.icon || '🎙️'}
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border border-white/10">
+              {currentPodcast.thumbnail_url ? (
+                <img 
+                  src={`http://localhost:8000${currentPodcast.thumbnail_url}`} 
+                  alt={currentPodcast.topic}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="bg-gradient-to-br from-white/10 to-white/5 w-full h-full flex items-center justify-center text-xl">
+                  {currentPodcast.category?.icon || '🎙️'}
+                </div>
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-white font-medium text-sm truncate">

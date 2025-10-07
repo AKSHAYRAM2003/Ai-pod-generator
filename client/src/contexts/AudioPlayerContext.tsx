@@ -6,6 +6,7 @@ interface Podcast {
   id: string;
   topic: string;
   audio_url?: string;
+  thumbnail_url?: string;
   duration?: number;
   category?: {
     name: string;
