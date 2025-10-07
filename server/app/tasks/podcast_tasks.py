@@ -12,6 +12,7 @@ from app.core.celery_app import celery_app
 from app.core.database import AsyncSessionLocal
 from app.models.podcast import Podcast, PodcastStatus
 from app.services.gemini_podcast_service import gemini_service
+from app.services.thumbnail_service import thumbnail_service
 from app.services.storage_service import storage_service
 from app.utils.audio_utils import pcm_to_mp3, get_audio_duration
 
@@ -125,10 +126,40 @@ async def _generate_podcast_async(podcast_id: str, task_id: str):
             )
             
             # Get audio duration
+            await _update_podcast_metadata(session, podcast, {"progress": 90, "stage": "Generating thumbnail..."})
+            
+            # Step 5: Generate thumbnail (90-95% progress)
+            try:
+                category_name = None
+                if podcast.category:
+                    category_name = podcast.category.name
+                
+                # Use synchronous version to avoid greenlet issues in Celery
+                thumbnail_data = thumbnail_service.generate_thumbnail_sync(
+                    topic=podcast.topic,
+                    description=podcast.description,
+                    category_name=category_name,
+                )
+                
+                # Save thumbnail
+                thumbnail_url = await storage_service.save_thumbnail(
+                    image_data=thumbnail_data,
+                    podcast_id=str(podcast.id),
+                    user_id=podcast.user_id,
+                    format="png"
+                )
+                
+                podcast.thumbnail_url = thumbnail_url
+                logger.info(f"[Task {task_id}] Thumbnail generated: {thumbnail_url}")
+                
+            except Exception as thumb_error:
+                logger.warning(f"[Task {task_id}] Thumbnail generation failed (non-critical): {thumb_error}")
+                # Continue even if thumbnail fails
+            
             await _update_podcast_metadata(session, podcast, {"progress": 95, "stage": "Finalizing..."})
             duration_seconds = get_audio_duration(audio_mp3, format="mp3")
             
-            # Step 5: Update podcast record (100% progress)
+            # Step 6: Update podcast record (100% progress)
             podcast.audio_url = audio_url
             podcast.audio_duration = int(duration_seconds) if duration_seconds else None
             podcast.status = PodcastStatus.COMPLETED

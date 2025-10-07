@@ -75,6 +75,7 @@ class PodcastResponse(BaseModel):
     status: PodcastStatus
     is_public: bool
     audio_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
     script: Optional[str] = None
     error_message: Optional[str] = None
     processing_started_at: Optional[datetime] = None
